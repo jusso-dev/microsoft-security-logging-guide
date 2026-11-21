@@ -66,6 +66,14 @@ Azure SQL Database and Azure SQL Managed Instance stream auditing and diagnostic
 7. **Tune audit action groups for noisy databases.** Review volume after 48 hours. If `BATCH_COMPLETED_GROUP` generates excessive GB/day from repetitive application queries, narrow action groups via PowerShell (`Set-AzSqlServerAudit`) or filter benign service principals with a Log Analytics workspace transformation.
 8. **Validate ingestion.** Run a test login and a benign query, wait 10 to 15 minutes, then run the validation KQL below in the Defender portal under **Investigation & response** > **Advanced hunting** with your Sentinel workspace selected.
 
+## Best-practice security configuration
+
+Enable **Microsoft Defender for Azure SQL Databases** at subscription scope via Azure Policy alongside auditing. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#defender-for-sql).
+
+- **Vulnerability Assessment (Express configuration):** Turn on Express configuration (no separate storage account needed), review the initial scan, approve a clean baseline, and triage weekly recurring scan findings ([SQL Vulnerability Assessment](https://learn.microsoft.com/en-us/azure/defender-for-cloud/sql-azure-vulnerability-assessment-overview)).
+- **Advanced Threat Protection:** Keep all threat detection categories enabled (SQL injection, anomalous client login/location, brute force and data exfiltration) ([Defender for Azure SQL](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-sql-introduction)).
+- **Identity & network hardening:** Enforce **Microsoft Entra-only authentication** where supported, disable **Allow Azure services and resources to access this server**, enforce Private Endpoints and minimum TLS 1.2, and enable Transparent Data Encryption (TDE).
+
 ## Architecture diagram
 
 ```mermaid

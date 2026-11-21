@@ -79,6 +79,16 @@ MDCA permissions integrate with Microsoft Defender unified RBAC, available world
 9. Optional, for shadow IT discovery in Sentinel: in the Defender portal go to **Settings > Cloud apps > System > SIEM agents > Add SIEM agent > Sentinel** and follow the wizard to enable discovery logs. Then in Sentinel open the **Microsoft Defender for Cloud Apps** data connector and enable the discovery logs data type. Discovery logs usually appear within 15 minutes ([Integrate Defender for Cloud Apps with Sentinel](https://learn.microsoft.com/en-us/defender-cloud-apps/siem-sentinel)).
 10. Validate with the queries below. Generate some SaaS activity first, such as a download from SharePoint Online and a policy edit in a connected app.
 
+## Best-practice security configuration
+
+Pair MDCA telemetry with preventive SaaS and OAuth controls. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#microsoft-defender-for-cloud-apps).
+
+- **Connect core cloud & SaaS apps:** Connect Microsoft 365, Azure, AWS, Google Cloud and major third-party SaaS/IdP apps (Okta, Salesforce, ServiceNow) ([MDCA best practices](https://learn.microsoft.com/en-us/defender-cloud-apps/best-practices)).
+- **Native MDE Cloud Discovery:** Enable Defender for Endpoint integration inside MDCA so managed endpoints stream shadow IT discovery without standalone log collectors.
+- **App Governance:** Enable App Governance and turn on built-in OAuth app threat policies to detect and suspend overprivileged or compromised apps ([App governance](https://learn.microsoft.com/en-us/defender-cloud-apps/app-governance-manage-app-governance)).
+- **Conditional Access App Control:** Route unmanaged or risky sessions through session policies to block sensitive file downloads, cut/copy/paste and unsanctioned uploads in real time ([Conditional Access app control](https://learn.microsoft.com/en-us/defender-cloud-apps/proxy-intro-aad)).
+- **Purview Information Protection integration:** Connect Purview labels so MDCA file policies can inspect and auto-label sensitive SaaS files.
+
 ## Architecture diagram
 
 ```mermaid

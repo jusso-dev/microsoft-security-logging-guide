@@ -67,6 +67,14 @@ Microsoft Foundry (formerly Azure AI Foundry) hosts foundation models, including
 7. **Generate test events.** Send a test chat completion call via the API (not just the portal playground, which can bypass some API log paths) and trigger a harmless control-plane action such as listing keys in a non-production resource.
 8. **Validate.** Diagnostic logs can take up to 2 hours to appear after first configuration, though steady-state latency is normally minutes. Run the validation queries below in Advanced hunting with your Sentinel workspace selected.
 
+## Best-practice security configuration
+
+Enable **Microsoft Defender for AI Services** alongside diagnostic logging so prompt attacks and key abuse are detected in real time. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#other-defender-for-cloud-workload-plans).
+
+- **Defender for AI Services:** Enable at subscription scope to detect jailbreak/prompt injection attempts, sensitive data leaks and anomalous model/API key abuse ([AI threat protection](https://learn.microsoft.com/en-us/azure/defender-for-cloud/ai-threat-protection)).
+- **Prompt Shields & Content Safety:** Turn on Azure AI Content Safety Prompt Shields (both direct user prompts and indirect document/tool-output prompts) on production deployments.
+- **Identity & network isolation:** Disable local API keys (`disableLocalAuth = true`) in favour of Microsoft Entra ID RBAC and Managed Identities, and place Foundry / Azure OpenAI endpoints behind Private Endpoints.
+
 ## Architecture diagram
 
 ```mermaid

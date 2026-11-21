@@ -67,6 +67,15 @@ Pick one alert path and disable the others:
 9. **Set table tiers for posture tables.** If `SecurityNestedRecommendation` or `SecurityRegulatoryCompliance` are only used for monthly audits or hunting, review their volume after a week and move them to the data lake tier if Analytics ingestion is unnecessary.
 10. **Validate.** Trigger a sample alert from Defender for Cloud > Security alerts > Sample alerts, wait 10 to 15 minutes, and run the validation queries below.
 
+## Best-practice security configuration
+
+Enable **Defender CSPM** alongside workload plans at management group or subscription scope via Azure Policy. See the full cross-product checklist in [Defender best-practice security configurations](../../docs/defender-best-practices.md#defender-cspm-cloud-security-posture-management).
+
+- **Defender CSPM:** Turn on **Agentless scanning for machines** (OS CVE and cleartext-secret scanning without agents), **Sensitive data discovery**, and **Attack Path Analysis** to prioritise internet-exposed high-privilege paths ([What is CSPM](https://learn.microsoft.com/en-us/azure/defender-for-cloud/concept-cloud-security-posture-management), [Agentless scanning](https://learn.microsoft.com/en-us/azure/defender-for-cloud/concept-agentless-data-collection), [Attack paths](https://learn.microsoft.com/en-us/azure/defender-for-cloud/concept-attack-path)).
+- **Governance rules:** Create subscription/management-group governance rules assigning owners and remediation SLAs (for example 7 days High, 30 days Medium) with weekly overdue digests ([Governance rules](https://learn.microsoft.com/en-us/azure/defender-for-cloud/governance-rules)).
+- **Core workload plans:** Enable **Defender for Servers Plan 2**, **Defender for SQL**, **Defender for Storage** (with Malware Scanning on upload buckets), **Defender for Containers**, **Defender for Key Vault**, **Defender for App Service**, **Defender for Resource Manager** and **Defender for AI Services** where those workloads run.
+- **Multi-cloud & DevOps:** Onboard AWS accounts, Google Cloud projects, GitHub organisations and Azure DevOps organisations so code-to-cloud attack paths and secret findings stay in one posture queue.
+
 ## Architecture diagram
 
 ```mermaid

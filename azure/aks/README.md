@@ -70,6 +70,15 @@ AKS diagnostic categories route to resource-specific tables when you pick **Reso
 6. **Connect Azure Activity.** Ensure **Azure Activity** is streaming from every subscription hosting AKS clusters so `listClusterAdminCredential` and cluster config changes are captured.
 7. **Validate.** Run a benign `kubectl` mutation (such as labelling a test pod in a dev namespace), wait 5 to 15 minutes, then run the validation KQL below in the Defender portal under **Investigation & response** > **Advanced hunting**.
 
+## Best-practice security configuration
+
+Combine `AKSAuditAdmin` logging with **Microsoft Defender for Containers** and cluster admission controls. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#defender-for-containers).
+
+- **Agentless discovery + Defender sensor:** Enable both agentless Kubernetes discovery and the eBPF **Defender sensor DaemonSet** for runtime threat detection and binary drift alerts ([Defender for Containers](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-containers-introduction)).
+- **Registry vulnerability scanning:** Enable continuous container image scanning on Azure Container Registry and block or alert on critical CVEs before deployment.
+- **Admission control:** Enable the **Azure Policy add-on for AKS** and enforce the built-in **Kubernetes cluster pod security restricted standards** (block privileged pods, hostPath mounts and root escalation).
+- **Control plane hardening:** Enforce Microsoft Entra ID RBAC, disable local Kubernetes accounts (`--disable-local-accounts`), and restrict API server access with authorised IP ranges or private AKS clusters.
+
 ## Architecture diagram
 
 ```mermaid

@@ -72,6 +72,17 @@ The device tables are populated by the MDE sensor, not by Windows audit policy. 
 8. **Enable the out-of-box rules and playbooks** listed below.
 9. **Check cost after a week.** Run the Usage query below. If a streamed table has no rule or hunting query reading it, turn it off or move it to the data lake tier.
 
+## Best-practice security configuration
+
+Logging is only half the job; configure these controls via Intune Endpoint Security (roll out restrictive rules in Audit mode for 14 to 30 days first, then move to Block). See the full checklist in [Defender best-practice security configurations](../../docs/defender-best-practices.md#microsoft-defender-for-endpoint).
+
+- **Tamper Protection:** On across all Windows and macOS devices so attackers and local admins can't disable AV or EDR ([Tamper protection](https://learn.microsoft.com/en-us/defender-endpoint/prevent-changes-to-security-settings-with-tamper-protection)).
+- **EDR in block mode:** On everywhere, especially alongside third-party AV running in active mode ([EDR in block mode](https://learn.microsoft.com/en-us/defender-endpoint/edr-in-block-mode)).
+- **Attack Surface Reduction (ASR):** Enable all standard rules; move high-confidence rules (LSASS credential theft, Office child processes, macro Win32 API calls, PsExec/WMI process creation, obfuscated scripts, vulnerable signed drivers) to Block ([ASR rules](https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction)).
+- **Network Protection & PUA:** Set both to **Block** mode so malicious URLs, C2 IPs and PUAs are stopped across every browser and process ([Network protection](https://learn.microsoft.com/en-us/defender-endpoint/enable-network-protection), [PUA protection](https://learn.microsoft.com/en-us/defender-endpoint/detect-block-potentially-unwanted-apps-microsoft-defender-antivirus)).
+- **Cloud protection & AIR:** Enable Block at First Sight (Cloud Block Level **High** or **High+**, 50s extended check), set Automated Investigation and Remediation (AIR) to **Full** on workstations, and keep **Automatic attack disruption** enabled ([Block at First Sight](https://learn.microsoft.com/en-us/defender-endpoint/configure-block-at-first-sight-microsoft-defender-antivirus), [AIR](https://learn.microsoft.com/en-us/defender-endpoint/configure-automated-investigations-remediation), [Automatic attack disruption](https://learn.microsoft.com/en-us/defender-xdr/automatic-attack-disruption)).
+- **Controlled Folder Access & Live Response:** Pilot Controlled Folder Access in Audit mode on high-value endpoints ([Controlled folder access](https://learn.microsoft.com/en-us/defender-endpoint/controlled-folders)) and keep Live Response unsigned script execution disabled unless explicitly required.
+
 ## Architecture diagram
 
 ```mermaid

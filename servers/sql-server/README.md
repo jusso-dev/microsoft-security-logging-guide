@@ -86,6 +86,14 @@ SQL Server running on-premises, on Azure VMs (IaaS) or in other clouds stores hi
 7. **Connect Defender for Cloud alerts to Sentinel.** In the Defender portal, confirm the **Microsoft Defender for Cloud** (tenant-based) and **Microsoft Defender XDR** connectors are enabled so Defender for SQL alerts land in `SecurityAlert` ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/connect-defender-for-cloud)).
 8. **Validate.** Run the KQL queries below to verify Event ID `33205` rows and `SecurityAlert` visibility.
 
+## Best-practice security configuration
+
+Protect on-premises and IaaS SQL Server instances with **Defender for SQL Servers on Machines** via Azure Arc alongside Windows Security log auditing. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#defender-for-sql).
+
+- **Arc + Defender for SQL on machines:** Onboard every non-Azure SQL host to Azure Arc and enable Defender for SQL at subscription scope so Advanced Threat Protection and Vulnerability Assessment run automatically ([Defender for SQL on machines](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-sql-usage)).
+- **Vulnerability Assessment baseline:** Review and approve a verified SQL security baseline per instance and fix high-severity misconfigurations (excessive `sysadmin` membership, `xp_cmdshell`, weak auth).
+- **Hardening basics:** Disable the `sa` account (or rename with strong vault-managed rotation), prefer Windows/Entra integrated auth over SQL logins, enforce encrypted connections (TLS 1.2+), and pair with Defender for Servers Plan 2 on the underlying OS.
+
 ## Architecture diagram
 
 ```mermaid

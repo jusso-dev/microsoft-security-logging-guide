@@ -84,6 +84,14 @@ Optional categories on `Microsoft.Web/sites` worth enabling when relevant: `AppS
 7. **Set table tiers.** In the Defender portal under **Setup & configuration** > **Data management** > **Data & connectors**, keep `AppServiceAuditLogs` and `AppServiceIPSecAuditLogs` in **Analytics**, and set `AppServiceConsoleLogs`, `AppServiceAppLogs`, `AppServicePlatformLogs`, `FunctionAppLogs` and (unless alerting on it) `AppServiceHTTPLogs` to the **Data lake** tier ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/configure-data-connector)).
 8. **Validate.** Browse to the app, trigger a function execution, wait 5 to 15 minutes, then run the validation queries below in the Defender portal under **Investigation & response** > **Advanced hunting**.
 
+## Best-practice security configuration
+
+Enable **Microsoft Defender for App Service** and eliminate legacy publishing credentials. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#other-defender-for-cloud-workload-plans).
+
+- **Defender for App Service:** Enable at subscription scope to catch dangling DNS takeover attempts, web-shell/command-injection indicators and suspicious Kudu/SCM activity ([Defender for App Service](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-app-service-introduction)).
+- **Disable FTP & SCM basic auth:** Turn off both `ftp` and `scm` basic publishing credentials via Azure Policy and deploy using Microsoft Entra ID or OIDC federated CI/CD.
+- **Transport & secrets:** Enforce HTTPS-only, minimum TLS 1.2, Managed Identities with Key Vault references instead of plaintext app settings, and restrict inbound access with Private Endpoints or WAF / IP restrictions.
+
 ## Architecture diagram
 
 ```mermaid

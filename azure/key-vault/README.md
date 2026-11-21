@@ -56,6 +56,14 @@ Key Vault data plane logs are collected via Azure Monitor diagnostic settings (c
 8. **Validate.** Wait 10 to 15 minutes and run the validation KQL queries below to verify whether events are landing in `AZKVAuditLogs`, `AzureDiagnostics`, or both.
 9. **Align analytic rules to your table.** Before enabling the Content Hub rules, inspect each rule's KQL to confirm it queries the table your vaults actually populate (`AZKVAuditLogs` vs `AzureDiagnostics`).
 
+## Best-practice security configuration
+
+Enable **Microsoft Defender for Key Vault** alongside vault access and recovery controls. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#other-defender-for-cloud-workload-plans).
+
+- **Defender for Key Vault:** Enable at subscription scope to detect Tor access, suspicious IP access and anomalous secret-read volume ([Defender for Key Vault](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-key-vault-introduction)).
+- **Soft-delete & purge protection:** Keep soft-delete on (default) and enable **purge protection** on every production vault so neither attackers nor compromised admins can permanently wipe keys or secrets.
+- **Azure RBAC & network isolation:** Prefer **Azure RBAC** over legacy vault access policies (least privilege, auditable in `AzureActivity`) and restrict public network access using Private Endpoints and firewall rules.
+
 ## Architecture diagram
 
 ```mermaid

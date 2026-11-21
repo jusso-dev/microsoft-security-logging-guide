@@ -61,6 +61,14 @@ With **Defender for Servers Plan 2** enabled on a subscription and Log Analytics
 7. **Collect IIS logs (if applicable).** In **Azure Monitor > Data Collection Rules**, create a DCR with the **IIS Logs** data source pointing to your Sentinel workspace (`W3CIISLog`), associate your IIS servers, and set `W3CIISLog` to the data lake tier or apply a workspace transformation to filter health checks ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/azure-monitor/vm/data-collection-iis)).
 8. **Validate ingestion.** Run the KQL queries below in the Defender portal (**Investigation & response > Advanced hunting**) with your Sentinel workspace selected, and check daily GB after one week.
 
+## Best-practice security configuration
+
+Pair AMA logging with **Microsoft Defender for Servers Plan 2** on Azure VMs and Azure Arc-enabled servers. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#defender-for-servers).
+
+- **Auto-provision MDE & AMA:** Enable automatic onboarding for Defender for Endpoint and Azure Monitor Agent across subscriptions and Arc servers ([Plan Defender for Servers](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-servers-introduction)).
+- **Endpoint hardening:** Enable Tamper Protection, EDR in block mode, Network Protection (Block) and server-tested ASR rules ([Defender for Endpoint hardening](../../docs/defender-best-practices.md#microsoft-defender-for-endpoint)).
+- **Agentless scanning, FIM & JIT (Plan 2):** Keep agentless vulnerability and secret scanning enabled, turn on **File Integrity Monitoring (FIM via AMA)** on critical Windows servers, and require **Just-in-Time (JIT) VM access** or Azure Bastion instead of open RDP (`3389`) ([FIM overview](https://learn.microsoft.com/en-us/azure/defender-for-cloud/file-integrity-monitoring-overview), [JIT VM access](https://learn.microsoft.com/en-us/azure/defender-for-cloud/just-in-time-access-overview)).
+
 ## Architecture diagram
 
 ```mermaid

@@ -60,6 +60,14 @@ The legacy Log Analytics agent's `auoms` plugin that populated `LinuxAuditLog` i
 7. **Onboard Linux servers to MDE (recommended).** Enable Defender for Servers auto-provisioning or deploy the MDE for Linux agent so kernel-level process, network and file events populate Defender XDR `Device*` tables automatically.
 8. **Tune tiers and cost.** After 7 days, run the `Usage` query below. Move chatty `CommonSecurityLog` firewall streams to the data lake tier or add DCR workspace transformations to drop routine allow noise.
 
+## Best-practice security configuration
+
+Pair Syslog/CEF collection with **Microsoft Defender for Servers Plan 2** (which includes Defender for Endpoint on Linux) across Azure VMs and Azure Arc Linux servers. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#defender-for-servers).
+
+- **MDE on Linux + agentless scanning:** Auto-provision Defender for Endpoint on Linux (eBPF runtime telemetry) and keep Plan 2 agentless vulnerability/secret scanning enabled ([Plan Defender for Servers](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-servers-introduction)).
+- **File Integrity Monitoring & JIT (Plan 2):** Enable Defender for Cloud FIM via AMA on critical `/etc`, SSH and binary paths, and enforce **Just-in-Time (JIT) VM access** or Azure Bastion instead of internet-exposed SSH (`22`) ([FIM overview](https://learn.microsoft.com/en-us/azure/defender-for-cloud/file-integrity-monitoring-overview), [JIT VM access](https://learn.microsoft.com/en-us/azure/defender-for-cloud/just-in-time-access-overview)).
+- **Hardening Syslog/CEF forwarders:** Restrict inbound UDP/TCP `514` on forwarders to known appliance subnets, prefer TLS-encrypted Syslog where appliances support it, and keep SSH key-only auth with `PermitRootLogin no`.
+
 ## Architecture diagram
 
 ```mermaid

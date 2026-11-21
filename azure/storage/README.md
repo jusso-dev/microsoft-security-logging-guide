@@ -66,6 +66,15 @@ Each Azure Storage sub-service writes to its own resource-specific table when di
 8. **Generate test events.** Upload, read and delete a test blob in a monitored storage account.
 9. **Validate.** Wait 10 to 15 minutes and run the validation KQL queries below, then review GB per day in `Usage` after 24 hours before expanding to more storage accounts.
 
+## Best-practice security configuration
+
+Pair Storage data-plane logging with **Microsoft Defender for Storage** and baseline access hardening. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#defender-for-storage).
+
+- **Modern Defender for Storage plan:** Enable the per-storage-account Defender for Storage plan at subscription scope (migrate off the legacy Classic per-transaction plan) ([What is Defender for Storage](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-storage-introduction)).
+- **On-upload Malware Scanning:** Enable Malware Scanning on accounts receiving external, user or partner uploads (with a monthly GB cap per account) and trigger an Event Grid automation to quarantine or delete malicious blobs via the `Malware Scanning scan result` index tag ([Malware Scanning](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-storage-malware-scan)).
+- **Sensitive Data Threat Detection:** Turn on sensitive data discovery so alerts on containers holding regulated or confidential data are prioritised automatically.
+- **Access hardening:** Disable **Allow Blob anonymous access**, disable **Shared Key access** in favour of Microsoft Entra RBAC, enforce HTTPS-only with minimum TLS 1.2, and restrict network access with Private Endpoints or VNet firewall rules.
+
 ## Architecture diagram
 
 ```mermaid

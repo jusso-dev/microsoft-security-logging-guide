@@ -87,6 +87,15 @@ Windows event 1644 (LDAP query stats) is no longer required. Remove the old regi
 13. **Connect events if you want raw tables.** Select **Connect events**, tick `IdentityDirectoryEvents`, `IdentityLogonEvents` and `IdentityQueryEvents` under the Defender for Identity tab, plus `AlertInfo` and `AlertEvidence` under Defender alerts, then apply.
 14. **Run the validation KQL below.** Expect known-attack detections immediately and behavioural detections after the learning period.
 
+## Best-practice security configuration
+
+Configure these controls so Defender for Identity detects and disrupts lateral movement reliably. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#microsoft-defender-for-identity).
+
+- **Complete sensor coverage:** Deploy the sensor on **every** Domain Controller (including RODCs), AD FS server and AD CS server; even one uncovered DC creates blind spots.
+- **Required Windows auditing:** Enable Advanced Audit Policy subcategories (`4662` Directory Service Access with SACLs, `4776` NTLM, Security Group Management, AD FS and AD CS auditing) ([Configure Windows event auditing](https://learn.microsoft.com/en-us/defender-for-identity/configure-windows-event-collection)).
+- **Sensitive & Honeytoken tags:** Tag high-value non-default admin/VIP accounts and Exchange/PKI groups as **Sensitive**, and create at least two realistic **Honeytoken** accounts so any recon or auth touch triggers an immediate alert ([Entity tags](https://learn.microsoft.com/en-us/defender-for-identity/entity-tags)).
+- **Action account (gMSA) & attack disruption:** Configure a least-privilege gMSA action account and keep **Automatic attack disruption** enabled so compromised on-premises AD accounts are disabled automatically during ransomware attacks ([Automatic attack disruption](https://learn.microsoft.com/en-us/defender-xdr/automatic-attack-disruption)).
+
 ## Architecture diagram
 
 ```mermaid

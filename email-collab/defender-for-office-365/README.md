@@ -67,6 +67,16 @@ Use the Defender portal at [security.microsoft.com](https://security.microsoft.c
 9. **Validate.** Run the queries in [Validation KQL](#validation-kql) after a few hours of mail flow. `EmailEvents` and `UrlClickEvents` should show rows within the first day.
 10. **Enable rules.** Threat intelligence matching rules first, then the custom detections below.
 
+## Best-practice security configuration
+
+Harden mail flow and collaboration alongside logging so phishing and malware are blocked pre-delivery. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#microsoft-defender-for-office-365).
+
+- **Preset security policies:** Assign Microsoft's **Standard** preset to all users and the **Strict** preset to executives, finance and IT admins ([Preset security policies](https://learn.microsoft.com/en-us/defender-office-365/preset-security-policies)).
+- **Safe Links:** Enable for Email, Microsoft Teams and Office 365 apps, turn on **Track user clicks**, and disable click-through to the original URL ([Safe Links](https://learn.microsoft.com/en-us/defender-office-365/safe-links-about)).
+- **Safe Attachments:** Use **Dynamic Delivery** for mail and enable Safe Attachments for SharePoint, OneDrive and Microsoft Teams ([Safe Attachments](https://learn.microsoft.com/en-us/defender-office-365/safe-attachments-about)).
+- **Anti-phishing & email auth:** Turn on mailbox intelligence, user/domain impersonation protection and first-contact safety tips, and enforce SPF, DKIM and DMARC (`p=reject`) across every accepted domain ([Anti-phishing policies](https://learn.microsoft.com/en-us/defender-office-365/anti-phishing-policies-about)).
+- **Zero-hour Auto Purge (ZAP):** Keep enabled for malware, high-confidence phish, spam and Teams messages ([ZAP](https://learn.microsoft.com/en-us/defender-office-365/zero-hour-auto-purge)).
+
 ## Architecture diagram
 
 ```mermaid
