@@ -20,9 +20,13 @@ theme:
   name: material
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
     - navigation.top
     - navigation.tracking
     - toc.follow
+    - search.suggest
     - search.highlight
     - search.share
     - content.code.copy
@@ -52,77 +56,82 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 nav:
-  - Home: index.md
-  - Cross-cutting docs:
-      - Architecture: docs/architecture.md
-      - Prioritisation: docs/prioritisation.md
-      - Defender XDR vs Sentinel: docs/defender-xdr-vs-sentinel.md
-      - Data lake tiering: docs/data-lake-tiering.md
-      - Cost estimation: docs/cost-estimation.md
-      - Sentinel health and audit: docs/sentinel-health.md
-      - Watchlists and enrichment: docs/watchlists.md
+  - Start here:
+      - Home: index.md
+      - "I'm trying to...": docs/start-here.md
+      - Prioritisation (ASD ACSC): docs/prioritisation.md
+      - Architecture overview: docs/architecture.md
+  - Design & operate:
+      - Avoid Defender XDR duplication: docs/defender-xdr-vs-sentinel.md
+      - Data lake vs Analytics tiering: docs/data-lake-tiering.md
+      - Estimate & cut costs: docs/cost-estimation.md
+      - Monitor ingestion health: docs/sentinel-health.md
+      - Watchlists & enrichment: docs/watchlists.md
+  - By product:
+      - Identity:
+          - identity/index.md
+          - Microsoft Entra ID: identity/entra-id/index.md
+          - Microsoft Entra ID Protection: identity/entra-id-protection/index.md
+          - Microsoft Defender for Identity: identity/defender-for-identity/index.md
+          - Active Directory (on-premises): identity/active-directory-on-prem/index.md
+          - Active Directory Federation Services (AD FS): identity/adfs/index.md
+          - Global Secure Access (Internet & Private Access): identity/entra-global-secure-access/index.md
+      - Endpoint:
+          - endpoint/index.md
+          - Microsoft Defender for Endpoint: endpoint/defender-for-endpoint/index.md
+          - Windows security event logs (clients): endpoint/windows-security-events/index.md
+          - Microsoft Intune: endpoint/intune/index.md
+      - Email & collaboration:
+          - email-collab/index.md
+          - Exchange Online: email-collab/exchange-online/index.md
+          - Microsoft Defender for Office 365: email-collab/defender-for-office-365/index.md
+          - SharePoint Online & OneDrive: email-collab/sharepoint-onedrive/index.md
+          - Microsoft Teams: email-collab/teams/index.md
+          - Microsoft Purview unified audit log: email-collab/purview-unified-audit/index.md
+      - Cloud apps:
+          - cloud-apps/index.md
+          - Microsoft Defender for Cloud Apps: cloud-apps/defender-for-cloud-apps/index.md
+      - Azure:
+          - azure/index.md
+          - Azure Activity (control plane): azure/azure-activity/index.md
+          - Microsoft Defender for Cloud: azure/defender-for-cloud/index.md
+          - Azure Key Vault: azure/key-vault/index.md
+          - Azure Storage: azure/storage/index.md
+          - Azure SQL Database & Managed Instance: azure/azure-sql/index.md
+          - Azure Kubernetes Service (AKS): azure/aks/index.md
+          - Azure networking (VNet flow, Firewall, WAF, DNS): azure/network-nsg-flow-firewall/index.md
+          - Azure App Service & Functions: azure/app-service-functions/index.md
+      - Data security:
+          - data-security/index.md
+          - Microsoft Purview DLP: data-security/purview-dlp/index.md
+          - Microsoft Purview Insider Risk Management: data-security/insider-risk/index.md
+          - Microsoft Purview Information Protection: data-security/information-protection/index.md
+      - Business applications:
+          - business-apps/index.md
+          - Power Platform (Apps, Automate, Admin): business-apps/power-platform/index.md
+          - Microsoft Dataverse & Dynamics 365: business-apps/dataverse-dynamics-365/index.md
+          - Microsoft Copilot Studio: business-apps/copilot-studio/index.md
+      - AI:
+          - ai/index.md
+          - Microsoft 365 Copilot: ai/microsoft-365-copilot/index.md
+          - Microsoft Foundry & Azure OpenAI: ai/azure-openai-ai-foundry/index.md
+      - DevOps:
+          - devops/index.md
+          - GitHub (Enterprise Cloud): devops/github/index.md
+          - Azure DevOps: devops/azure-devops/index.md
+      - Servers:
+          - servers/index.md
+          - Windows Server: servers/windows-server/index.md
+          - Linux (Syslog, CEF & auditd): servers/linux-syslog/index.md
+          - SQL Server (on-premises & IaaS): servers/sql-server/index.md
+      - Multi-cloud:
+          - multi-cloud/index.md
+          - Amazon Web Services (optional): multi-cloud/aws/index.md
+          - Google Cloud (optional): multi-cloud/google-cloud/index.md
+  - KQL query packs:
       - Validation query pack: queries/validation/index.md
-      - Cost query pack: queries/cost/index.md
-  - Identity:
-      - Overview: identity/index.md
-      - Microsoft Entra ID (sign-in, audit and Graph activity logs): identity/entra-id/index.md
-      - Microsoft Entra ID Protection (risk detections): identity/entra-id-protection/index.md
-      - Microsoft Defender for Identity: identity/defender-for-identity/index.md
-      - Active Directory Domain Services (on-premises): identity/active-directory-on-prem/index.md
-      - Active Directory Federation Services (AD FS): identity/adfs/index.md
-      - Microsoft Entra Internet Access and Private Access (Global Secure Access): identity/entra-global-secure-access/index.md
-  - Endpoint:
-      - Overview: endpoint/index.md
-      - Microsoft Defender for Endpoint: endpoint/defender-for-endpoint/index.md
-      - Windows security event logs (clients): endpoint/windows-security-events/index.md
-      - Microsoft Intune: endpoint/intune/index.md
-  - Email and collaboration:
-      - Overview: email-collab/index.md
-      - Exchange Online: email-collab/exchange-online/index.md
-      - Microsoft Defender for Office 365: email-collab/defender-for-office-365/index.md
-      - SharePoint Online and OneDrive: email-collab/sharepoint-onedrive/index.md
-      - Microsoft Teams: email-collab/teams/index.md
-      - Microsoft Purview unified audit log: email-collab/purview-unified-audit/index.md
-  - Cloud apps:
-      - Overview: cloud-apps/index.md
-      - Microsoft Defender for Cloud Apps: cloud-apps/defender-for-cloud-apps/index.md
-  - Azure:
-      - Overview: azure/index.md
-      - Azure Activity (control plane): azure/azure-activity/index.md
-      - Microsoft Defender for Cloud: azure/defender-for-cloud/index.md
-      - Azure Key Vault: azure/key-vault/index.md
-      - Azure Storage: azure/storage/index.md
-      - Azure SQL Database and Managed Instance: azure/azure-sql/index.md
-      - Azure Kubernetes Service (AKS): azure/aks/index.md
-      - Azure networking (VNet flow logs, Azure Firewall, WAF, DNS): azure/network-nsg-flow-firewall/index.md
-      - Azure App Service and Azure Functions: azure/app-service-functions/index.md
-  - Data security:
-      - Overview: data-security/index.md
-      - Microsoft Purview Data Loss Prevention: data-security/purview-dlp/index.md
-      - Microsoft Purview Insider Risk Management: data-security/insider-risk/index.md
-      - Microsoft Purview Information Protection: data-security/information-protection/index.md
-  - Business applications:
-      - Overview: business-apps/index.md
-      - Power Platform (Power Apps, Power Automate, admin): business-apps/power-platform/index.md
-      - Microsoft Dataverse and Dynamics 365: business-apps/dataverse-dynamics-365/index.md
-      - Microsoft Copilot Studio: business-apps/copilot-studio/index.md
-  - AI:
-      - Overview: ai/index.md
-      - Microsoft 365 Copilot: ai/microsoft-365-copilot/index.md
-      - Microsoft Foundry (formerly Azure AI Foundry) and Azure OpenAI: ai/azure-openai-ai-foundry/index.md
-  - DevOps:
-      - Overview: devops/index.md
-      - GitHub (Enterprise Cloud): devops/github/index.md
-      - Azure DevOps: devops/azure-devops/index.md
-  - Servers:
-      - Overview: servers/index.md
-      - Windows Server: servers/windows-server/index.md
-      - Linux (Syslog, CEF and auditd): servers/linux-syslog/index.md
-      - SQL Server (on-premises and IaaS): servers/sql-server/index.md
-  - Multi-cloud (optional):
-      - Overview: multi-cloud/index.md
-      - Amazon Web Services (optional): multi-cloud/aws/index.md
-      - Google Cloud (optional): multi-cloud/google-cloud/index.md
-  - Changelog: CHANGELOG.md
-  - Template: TEMPLATE.md
-  - Contributing: CONTRIBUTING.md
+      - Cost estimation query pack: queries/cost/index.md
+  - Project:
+      - Changelog: CHANGELOG.md
+      - Guide template: TEMPLATE.md
+      - Contributing: CONTRIBUTING.md

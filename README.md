@@ -6,66 +6,56 @@ Microsoft's guidance on what to log is spread across hundreds of product pages. 
 
 > **Disclaimer.** This is community guidance, not official Microsoft documentation. Microsoft changes table names, connectors and licensing often. Always check the linked Microsoft Learn pages before you rely on anything here, and test in a non-production workspace first.
 
-## How to use it
+## Start here: what are you trying to do?
 
-1. Read [docs/architecture.md](docs/architecture.md) for how data reaches Sentinel and Defender XDR.
-2. Use [docs/prioritisation.md](docs/prioritisation.md) to decide what to onboard first. It maps each product to the ASD ACSC priority log list.
-3. Open the product guide for each thing you run. Each one follows the same [template](TEMPLATE.md), so you can jump straight to log sources, setup steps, validation queries or detections.
-4. Check the "Last verified" date at the bottom of each guide. Anything older than six months deserves a second look.
+Pick your goal below to jump straight to the right page (or open the full [Start here decision guide](docs/start-here.md)):
 
-## Prioritisation approach
+| I'm trying to... | Do this |
+|---|---|
+| **Start a new Sentinel deployment from scratch** | Follow the 4-week rollout in [Start here](docs/start-here.md#quick-onboarding-sequence-first-30-days), starting with free sources in [Prioritisation](docs/prioritisation.md) and [Architecture overview](docs/architecture.md). |
+| **Map logging to ASD ACSC Priority Logs** | Use the checked matrix in [Prioritisation](docs/prioritisation.md) (exact May 2025 PDF page references, free sources, default tiers and gaps). |
+| **Avoid paying twice for Defender XDR and Sentinel (or fix duplicate alerts)** | Follow the per-product decision table in [Defender XDR vs Sentinel](docs/defender-xdr-vs-sentinel.md). |
+| **Cut Sentinel ingestion costs or estimate spend before onboarding** | Run the 7 queries in [Cost estimation](docs/cost-estimation.md) ([queries/cost/](queries/cost/README.md)) and move hunt-only tables to the data lake using [Data lake tiering](docs/data-lake-tiering.md). |
+| **Check if every table is landing and alert when a feed stops** | Run [health-all-tables.kql](queries/validation/health-all-tables.kql) from the [Validation query pack](queries/validation/README.md) and set up `SentinelHealth` alerts with [Sentinel health and audit](docs/sentinel-health.md). |
+| **Feed VIP users, leavers or IP ranges into detections** | Set up UEBA `IdentityInfo` and watchlists using [Watchlists and enrichment](docs/watchlists.md). |
+| **Onboard a specific product** | Jump to your product group below, or browse [by threat and workload](docs/start-here.md#by-threat-or-workload-im-trying-to-monitor). |
 
-Not every log belongs in the same place. We use three questions for every source:
+Every product guide follows the same [template](TEMPLATE.md), so once you open one you can jump straight to **High-value log sources**, **Step-by-step setup**, **Validation KQL**, **Out-of-box analytic rules** or **Custom detections**. Check the **Last verified** date at the bottom of each guide.
 
-- **Does a detection need it in near real time?** If an analytic rule or custom detection reads it, keep it in the Sentinel **analytics tier**.
-- **Is it mostly for hunting, investigations or compliance?** High-volume logs such as flow logs, firewall logs, proxy logs and verbose resource logs usually belong in the **data lake tier**, where storage is far cheaper and you can still query it with KQL or promote results back to analytics.
-- **Is it already in Defender XDR?** Defender XDR keeps 30 days of advanced hunting data for its own products. Streaming the same tables into Sentinel costs money, so do it on purpose. See [docs/defender-xdr-vs-sentinel.md](docs/defender-xdr-vs-sentinel.md).
+## Three rules behind every guide
 
-The order of onboarding follows Microsoft's own advice (free Microsoft sources first) and the ASD ACSC priority list. Identity, email, endpoint and Azure control plane logs come first.
+Not every log belongs in the same place. We ask three questions for every source:
 
-## Repository structure
+- **Does a detection need it in near real time?** If an analytic rule or custom detection reads it, keep it in the Sentinel **Analytics tier**.
+- **Is it mostly for hunting, investigations or compliance?** High-volume logs such as flow logs, firewall traffic, proxy logs and verbose storage/Graph logs belong in the **Data lake tier**, where storage is far cheaper and you can promote insights back to Analytics via summary rules or KQL jobs. See [Data lake tiering](docs/data-lake-tiering.md).
+- **Is it already in Defender XDR?** Defender XDR keeps 30 days of advanced hunting data (90 days for eligible ISOC plans) at no Sentinel ingestion cost. Streaming raw tables into Sentinel costs money, so do it on purpose. See [Defender XDR vs Sentinel](docs/defender-xdr-vs-sentinel.md).
 
-```text
-docs/              Architecture, prioritisation, tiering, cost, health and watchlists
-queries/           Validation and cost estimation KQL packs
-TEMPLATE.md        The structure every product guide follows
-identity/          Entra ID, ID Protection, Defender for Identity, AD DS, AD FS, Global Secure Access
-endpoint/          Defender for Endpoint, Windows security events, Intune
-email-collab/      Exchange Online, Defender for Office 365, SharePoint and OneDrive, Teams, Purview audit
-cloud-apps/        Defender for Cloud Apps
-azure/             Azure Activity, Defender for Cloud, Key Vault, Storage, SQL, AKS, networking, App Service
-data-security/     Purview DLP, Insider Risk Management, Information Protection
-business-apps/     Power Platform, Dataverse and Dynamics 365, Copilot Studio
-ai/                Microsoft 365 Copilot, Microsoft Foundry and Azure OpenAI
-devops/            GitHub, Azure DevOps
-servers/           Windows Server, Linux, SQL Server
-multi-cloud/       AWS and Google Cloud (optional)
-```
+## Browse by product group
 
-## Product guides
+Each group page starts with an **"I'm trying to..."** guide for that area, a table of primary log tables and default tiers, and a link to that group's validation KQL pack.
 
 ### [Identity](identity/README.md)
 
-- [Microsoft Entra ID (sign-in, audit and Graph activity logs)](identity/entra-id/README.md) (P1 (start here))
-- [Microsoft Entra ID Protection (risk detections)](identity/entra-id-protection/README.md) (P1 (start here))
-- [Microsoft Defender for Identity](identity/defender-for-identity/README.md) (P1 (start here))
-- [Active Directory Domain Services (on-premises)](identity/active-directory-on-prem/README.md) (P1 (start here))
-- [Active Directory Federation Services (AD FS)](identity/adfs/README.md) (P1 (start here))
+- [Microsoft Entra ID (sign-in, audit and Graph activity logs)](identity/entra-id/README.md) (P1, start here)
+- [Microsoft Entra ID Protection (risk detections)](identity/entra-id-protection/README.md) (P1, start here)
+- [Microsoft Defender for Identity](identity/defender-for-identity/README.md) (P1, start here)
+- [Active Directory Domain Services (on-premises)](identity/active-directory-on-prem/README.md) (P1, start here)
+- [Active Directory Federation Services (AD FS)](identity/adfs/README.md) (P1, start here)
 - [Microsoft Entra Internet Access and Private Access (Global Secure Access)](identity/entra-global-secure-access/README.md) (P3)
 
 ### [Endpoint](endpoint/README.md)
 
-- [Microsoft Defender for Endpoint](endpoint/defender-for-endpoint/README.md) (P1 (start here))
-- [Windows security event logs (clients)](endpoint/windows-security-events/README.md) (P1 (start here))
+- [Microsoft Defender for Endpoint](endpoint/defender-for-endpoint/README.md) (P1, start here)
+- [Windows security event logs (clients)](endpoint/windows-security-events/README.md) (P1, start here)
 - [Microsoft Intune](endpoint/intune/README.md) (P2)
 
 ### [Email and collaboration](email-collab/README.md)
 
-- [Exchange Online](email-collab/exchange-online/README.md) (P1 (start here))
-- [Microsoft Defender for Office 365](email-collab/defender-for-office-365/README.md) (P1 (start here))
+- [Exchange Online](email-collab/exchange-online/README.md) (P1, start here)
+- [Microsoft Defender for Office 365](email-collab/defender-for-office-365/README.md) (P1, start here)
 - [SharePoint Online and OneDrive](email-collab/sharepoint-onedrive/README.md) (P2)
 - [Microsoft Teams](email-collab/teams/README.md) (P2)
-- [Microsoft Purview unified audit log](email-collab/purview-unified-audit/README.md) (P1 (start here))
+- [Microsoft Purview unified audit log](email-collab/purview-unified-audit/README.md) (P1, start here)
 
 ### [Cloud apps](cloud-apps/README.md)
 
@@ -73,7 +63,7 @@ multi-cloud/       AWS and Google Cloud (optional)
 
 ### [Azure](azure/README.md)
 
-- [Azure Activity (control plane)](azure/azure-activity/README.md) (P1 (start here))
+- [Azure Activity (control plane)](azure/azure-activity/README.md) (P1, start here)
 - [Microsoft Defender for Cloud](azure/defender-for-cloud/README.md) (P2)
 - [Azure Key Vault](azure/key-vault/README.md) (P2)
 - [Azure Storage](azure/storage/README.md) (P2)
@@ -114,6 +104,26 @@ multi-cloud/       AWS and Google Cloud (optional)
 
 - [Amazon Web Services (optional)](multi-cloud/aws/README.md) (P3)
 - [Google Cloud (optional)](multi-cloud/google-cloud/README.md) (P3)
+
+## Repository layout
+
+```text
+docs/              Start here, architecture, prioritisation, tiering, cost, health and watchlists
+queries/           Validation and cost estimation KQL packs
+TEMPLATE.md        The structure every product guide follows
+CHANGELOG.md       Dated history of manual and nightly automated updates
+identity/          Entra ID, ID Protection, Defender for Identity, AD DS, AD FS, Global Secure Access
+endpoint/          Defender for Endpoint, Windows security events, Intune
+email-collab/      Exchange Online, Defender for Office 365, SharePoint and OneDrive, Teams, Purview audit
+cloud-apps/        Defender for Cloud Apps
+azure/             Azure Activity, Defender for Cloud, Key Vault, Storage, SQL, AKS, networking, App Service
+data-security/     Purview DLP, Insider Risk Management, Information Protection
+business-apps/     Power Platform, Dataverse and Dynamics 365, Copilot Studio
+ai/                Microsoft 365 Copilot, Microsoft Foundry and Azure OpenAI
+devops/            GitHub, Azure DevOps
+servers/           Windows Server, Linux, SQL Server
+multi-cloud/       AWS and Google Cloud (optional)
+```
 
 ## Key sources
 
