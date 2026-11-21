@@ -4,6 +4,7 @@ name: CI
 #   markdownlint - Markdown structure
 #   style        - CONTRIBUTING.md writing style (em dashes, emojis, old names)
 #   mermaid      - every Mermaid diagram renders
+#   sentinel     - Sentinel Content Hub V3 templates, YAML rules, Defender XDR rules and KQL
 #   links        - every external link resolves (weekly on main, and on PRs)
 # A scheduled link-check failure opens or updates a tracking issue.
 
@@ -48,6 +49,23 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: node scripts/check-mermaid.mjs
+
+  sentinel:
+    name: Sentinel solution & KQL validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Validate Sentinel solution, ARM templates, Defender XDR rules and KQL
+        run: python3 scripts/validate_sentinel.py
+      - name: Check packaged solution is in sync with guide KQL
+        run: |
+          python3 scripts/build_solution.py
+          git diff --exit-code solution/ defender-xdr/
 
   links:
     name: Link check

@@ -1,0 +1,36 @@
+id: c3042d9a-da8a-5bab-8bea-6e59bd290746
+name: 'Power Platform (Power Apps, Power Automate, Power Platform admin) - Flow shared with a guest or external account'
+description: |
+  SharingPermission 3 is Owner and 2 is Run-only per the Power Automate log schema. External co-owners are the higher-risk case. MITRE: Persistence T1098. Source guide: business-apps/power-platform/README.md (C5).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: PowerAutomate
+    dataTypes:
+      - PowerAutomateActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - Flow shared with a guest or someone outside your internal domains
+  // ASSUMPTION: replace internal_domains with your tenant's verified domains.
+  let internal_domains = dynamic(["yourdomain.gov.au"]);
+  PowerAutomateActivity
+  | where TimeGenerated > ago(1h)
+  | where isnotempty(RecipientUpn)
+  | extend RecipientDomain = tolower(tostring(split(RecipientUpn, "@")[1]))
+  | where RecipientUpn has "#EXT#" or RecipientDomain !in (internal_domains)
+  | extend Permission = case(SharingPermission == "3", "Owner", SharingPermission == "2", "Run-only", SharingPermission)
+  | project TimeGenerated, ActorName, EventOriginalType, RecipientUpn, Permission, FlowDetailsUrl
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+version: 1.0.0
+kind: Scheduled

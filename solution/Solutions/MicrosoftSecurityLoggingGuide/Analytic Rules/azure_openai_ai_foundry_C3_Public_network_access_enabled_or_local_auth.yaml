@@ -1,0 +1,44 @@
+id: 6efb3c74-8465-5dc7-8c66-992a1a06d87b
+name: 'Foundry (formerly Azure AI Foundry) and Azure OpenAI - Public network access enabled or local auth re-enabled on a Foundry ac...'
+description: |
+  MITRE ATT&CK: Defense Evasion T1562.007 (Disable or Modify Cloud Firewall). Source guide: ai/azure-openai-ai-foundry/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.007
+query: |
+  // CUSTOM - Cognitive Services account updated with public network access or local auth enabled
+  // ASSUMPTION: Properties_d / Properties JSON carries requestbody fields on ARM write operations
+  // when request body logging is present. Validate exact JSON path in your tenant first.
+  AzureActivity
+  | where TimeGenerated > ago(1h)
+  | where ResourceProviderValue =~ "Microsoft.CognitiveServices"
+  | where OperationNameValue =~ "Microsoft.CognitiveServices/accounts/write"
+  | where ActivityStatusValue =~ "Success"
+  | where Properties has_any ("\"publicNetworkAccess\":\"Enabled\"", "\"disableLocalAuth\":false")
+  | project TimeGenerated, Caller, CallerIpAddress, ResourceGroup, _ResourceId, Properties
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Caller
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: _ResourceId
+version: 1.0.0
+kind: Scheduled

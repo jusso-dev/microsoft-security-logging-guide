@@ -1,0 +1,39 @@
+id: 38493f7f-1a04-5b62-97c8-2528eb01b118
+name: 'SQL Server (on-premises and IaaS) - Privileged SQL server role change or xp_cmdshell enabled'
+description: |
+  MITRE: Privilege Escalation T1098 (Account Manipulation) and Execution T1059 (Command and Scripting Interpreter). Source guide: servers/sql-server/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+  - PrivilegeEscalation
+  - Persistence
+relevantTechniques:
+  - T1059
+  - T1098
+query: |
+  // CUSTOM - Detects additions to sysadmin/securityadmin or enabling xp_cmdshell
+  // ASSUMPTION: SERVER_ROLE_MEMBER_CHANGE_GROUP and SERVER_OPERATION_GROUP are enabled in SQL Server Audit.
+  SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID == 33205
+  | extend ActionId = trim(" ", extract(@"action_id:([^\r\n]+)", 1, EventData)),
+           Principal = trim(" ", extract(@"server_principal_name:([^\r\n]+)", 1, EventData)),
+           Statement = trim(" ", extract(@"statement:([^\r\n]+)", 1, EventData))
+  | where Statement has_any ("sysadmin", "securityadmin", "xp_cmdshell", "Ole Automation Procedures", "sp_addsrvrolemember")
+  | project TimeGenerated, Computer, Principal, ActionId, Statement
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,41 @@
+id: 54033ea8-e208-54df-b7ac-6c3b3f3166c6
+name: 'Azure App Service and Azure Functions - Suspicious Kudu/SCM probing or web shell path hits in HTTP logs'
+description: |
+  Run hourly if AppServiceHTTPLogs is in Analytics, or as a scheduled Data lake hunt. Flags external requests probing common Kudu/SCM, .env, backup or web shell endpoints that return HTTP 200. MITRE: Initial Access T1190, Persistence, Web Shell T1505.003. Source guide: azure/app-service-functions/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureAppService
+    dataTypes:
+      - AppServiceHTTPLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - Persistence
+relevantTechniques:
+  - T1190
+  - T1505.003
+query: |
+  // CUSTOM - Successful HTTP 200 responses on sensitive paths or suspected web shell probes
+  // ASSUMPTION: AppServiceHTTPLogs is in Analytics (or run in Data lake explorer as a scheduled hunt).
+  // Tune CsUriStem patterns for your application stack.
+  AppServiceHTTPLogs
+  | where TimeGenerated > ago(1h)
+  | where ScStatus == 200
+  | where CsUriStem has_any (
+      "/.env", "/.git/", "/web.config", "/wp-admin", "/cmd.aspx", "/shell.aspx",
+      "/api/vfs", "/api/command", "/api/zipdeploy"
+  )
+  | summarize Hits = count(), Paths = make_set(CsUriStem, 10), UserAgents = make_set(UserAgent, 5)
+      by CIp, CsHost, _ResourceId
+  | order by Hits desc
+entityMappings:
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: _ResourceId
+version: 1.0.0
+kind: Scheduled

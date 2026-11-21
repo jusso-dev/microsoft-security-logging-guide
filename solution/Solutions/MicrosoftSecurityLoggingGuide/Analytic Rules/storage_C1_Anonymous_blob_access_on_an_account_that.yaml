@@ -1,0 +1,41 @@
+id: ecf59bff-e07d-5938-8c91-4f99a0570b4b
+name: 'Azure Storage - Anonymous blob access on an account that shouldn''t be public'
+description: |
+  Even when public blob access is meant to be disabled by policy, exceptions happen. Catching AuthenticationType == "Anonymous" on sensitive accounts gives immediate visibility into accidental exposure. MITRE: Collection, Data from Cloud Storage T1530. Source guide: azure/storage/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureStorageAccount
+    dataTypes:
+      - StorageBlobLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+relevantTechniques:
+  - T1530
+query: |
+  // CUSTOM - Successful anonymous read or list against sensitive blob storage accounts
+  // ASSUMPTION: AuthenticationType uses "Anonymous" and StatusCode is 200 in StorageBlobLogs.
+  // Populate public_allowlist with any intentionally public static-website or CDN storage accounts.
+  let public_allowlist = dynamic(["publicwebassets01"]);
+  StorageBlobLogs
+  | where TimeGenerated > ago(1h)
+  | where AuthenticationType =~ "Anonymous"
+  | where StatusCode == 200
+  | where AccountName !in~ (public_allowlist)
+  | summarize Requests = count(),
+              BytesOut = sum(ResponseBodySize),
+              Operations = make_set(OperationName, 10),
+              IPs = make_set(CallerIpAddress, 10)
+              by AccountName
+  | where Requests >= 5
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: AccountName
+version: 1.0.0
+kind: Scheduled

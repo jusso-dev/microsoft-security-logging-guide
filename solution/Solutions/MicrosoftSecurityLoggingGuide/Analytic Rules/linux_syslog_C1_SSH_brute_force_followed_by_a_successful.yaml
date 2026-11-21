@@ -1,0 +1,48 @@
+id: 843b0893-0914-54e4-95c6-b92b440778c6
+name: 'Linux (Syslog, CEF and auditd) - SSH brute force followed by a successful login'
+description: |
+  MITRE: Credential Access T1110 (Brute Force) and Initial Access T1078 (Valid Accounts). Source guide: servers/linux-syslog/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SyslogAma
+    dataTypes:
+      - Syslog
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - CredentialAccess
+relevantTechniques:
+  - T1078
+  - T1110
+query: |
+  // CUSTOM - Multiple failed SSH authentication attempts followed by an Accepted login from the same IP
+  // ASSUMPTION: OpenSSH logs to auth or authpriv with standard "Failed password" and "Accepted" strings.
+  // Verify exact SyslogMessage format on your Linux distros before enabling.
+  let failed = Syslog
+  | where TimeGenerated > ago(1h)
+  | where Facility in ("auth", "authpriv") and ProcessName == "sshd"
+  | where SyslogMessage has "Failed password"
+  | extend SrcIP = extract(@"from ([0-9a-fA-F\.:]+) port", 1, SyslogMessage)
+  | where isnotempty(SrcIP)
+  | summarize FailCount = count(), FirstFail = min(TimeGenerated), LastFail = max(TimeGenerated)
+              by Computer, SrcIP
+  | where FailCount >= 10;
+  Syslog
+  | where TimeGenerated > ago(1h)
+  | where Facility in ("auth", "authpriv") and ProcessName == "sshd"
+  | where SyslogMessage has "Accepted "
+  | extend SrcIP = extract(@"from ([0-9a-fA-F\.:]+) port", 1, SyslogMessage)
+  | join kind=inner failed on Computer, SrcIP
+  | where TimeGenerated >= FirstFail
+  | project TimeGenerated, Computer, SrcIP, FailCount, SyslogMessage
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

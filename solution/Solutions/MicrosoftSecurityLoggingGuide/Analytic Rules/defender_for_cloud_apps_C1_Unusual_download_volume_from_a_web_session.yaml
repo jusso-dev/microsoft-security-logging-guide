@@ -1,0 +1,40 @@
+id: 97b90012-3032-5dab-b172-dae4854af26b
+name: 'Defender for Cloud Apps - Unusual download volume from a web session'
+description: |
+  MITRE: Exfiltration T1567. Source guide: cloud-apps/defender-for-cloud-apps/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - CloudAppEvents
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1567
+query: |
+  // CUSTOM - Hard threshold on downloads by one account in an hour, across all connected apps
+  // The built-in Unusual multiple file download activities uses a per-user learned baseline, so a
+  // slow-and-steady exfil under the baseline is invisible. This is the backstop.
+  // ASSUMPTION: Download ActionType values differ per app connector. Pin them first:
+  //   CloudAppEvents | where TimeGenerated > ago(7d) | where ActionType has_cs "ownload"
+  //   | summarize Rows = count() by Application, ActionType | order by Rows desc
+  let hourly_downloads = 300;
+  CloudAppEvents
+  | where TimeGenerated > ago(1h)
+  | where ActionType has_cs "ownload" or ActivityType has_cs "ownload"
+  | summarize Downloads = count(), Objects = dcount(ObjectId), Apps = make_set(Application, 5)
+      by AccountObjectId, bin(TimeGenerated, 1h)
+  | where Downloads > hourly_downloads or Objects > 200
+  | project TimeGenerated, AccountObjectId, Downloads, Objects, Apps
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: AadUserId
+        columnName: AccountObjectId
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,48 @@
+id: 4869e0da-e25c-5886-82b2-e1210a2ff0ba
+name: 'Defender for Office 365 - User clicked through a Safe Links warning page'
+description: |
+  Safe Links did its job and the user went anyway. Treat the account as possibly compromised: check the device and recent sign-ins. MITRE: Initial Access T1566.002, Execution T1204.001. The same logic ships as a hunting query in the Defender XDR solution, but not as a rule, so this closes the gap. Source guide: email-collab/defender-for-office-365/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - UrlClickEvents
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - Execution
+relevantTechniques:
+  - T1204.001
+  - T1566.002
+query: |
+  // CUSTOM - Click allowed or user continued past a phishing warning
+  // Based on the documented UrlClickEvents example query.
+  UrlClickEvents
+  | where TimeGenerated > ago(1h)
+  | where ActionType == "ClickAllowed" or IsClickedThrough != 0
+  | where ThreatTypes has "Phish"
+  | summarize ClickTime = min(TimeGenerated), Latest = max(TimeGenerated) by ReportId, AccountUpn, Url, NetworkMessageId, IPAddress, Workload
+  | project ClickTime, AccountUpn, Url, NetworkMessageId, IPAddress, Workload
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: AccountUpn
+  - entityType: MailMessage
+    fieldMappings:
+      - identifier: NetworkMessageId
+        columnName: NetworkMessageId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IPAddress
+  - entityType: URL
+    fieldMappings:
+      - identifier: Url
+        columnName: Url
+version: 1.0.0
+kind: Scheduled

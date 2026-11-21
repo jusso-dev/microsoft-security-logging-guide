@@ -1,0 +1,50 @@
+id: 8f18f0d0-469d-5587-8c32-35f065c3568d
+name: 'Defender for Endpoint - Process hash matches a non-Microsoft threat feed'
+description: |
+  MITRE: varies by indicator. Feed the watchlist from a TI platform or vendor feed. If your only indicator sources are already in Defender XDR, use a custom detection with FileProfile() there instead and skip the ingestion. Source guide: endpoint/defender-for-endpoint/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - DeviceProcessEvents
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Discovery
+query: |
+  // CUSTOM - Process SHA1 matching a watchlist fed from your own threat intel
+  // This is the case that justifies streaming: joining MDE data with non-Microsoft data in Sentinel.
+  // ASSUMPTION: a watchlist alias "BlockedHashes" exists, with the hash in the SearchKey column.
+  let blocked = _GetWatchlist("BlockedHashes")
+  | project SHA1 = tolower(tostring(SearchKey));
+  DeviceProcessEvents
+  | where TimeGenerated > ago(1h)
+  | where tolower(SHA1) in ((blocked))
+  | project TimeGenerated, DeviceName, AccountName, FileName, FolderPath,
+      ProcessCommandLine, InitiatingProcessFileName, SHA1
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: AccountName
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: DeviceName
+  - entityType: File
+    fieldMappings:
+      - identifier: Name
+        columnName: FileName
+  - entityType: FileHash
+    fieldMappings:
+      - identifier: Value
+        columnName: SHA1
+  - entityType: Process
+    fieldMappings:
+      - identifier: CommandLine
+        columnName: ProcessCommandLine
+version: 1.0.0
+kind: Scheduled

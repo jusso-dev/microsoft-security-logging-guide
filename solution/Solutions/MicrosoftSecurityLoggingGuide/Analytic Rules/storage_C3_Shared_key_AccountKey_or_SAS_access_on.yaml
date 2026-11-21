@@ -1,0 +1,39 @@
+id: c83849f9-7c6c-58e3-81ff-01d8d251039d
+name: 'Azure Storage - Shared key (AccountKey) or SAS access on accounts meant to be Entra OAuth only'
+description: |
+  Enforcing Entra ID (OAuth) authentication removes static key risk. This rule flags fallback to AccountKey or SAS on hardened accounts. MITRE: Credential Access and Lateral Movement, Use Alternate Authentication Material T1550. Source guide: azure/storage/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureStorageAccount
+    dataTypes:
+      - StorageBlobLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+  - LateralMovement
+relevantTechniques:
+  - T1550
+query: |
+  // CUSTOM - Non-OAuth access to hardened storage accounts
+  // ASSUMPTION: hardened_accounts lists accounts expected to enforce Entra OAuth only.
+  let hardened_accounts = dynamic(["finprodstorage01", "hrdatalake01"]);
+  StorageBlobLogs
+  | where TimeGenerated > ago(1h)
+  | where AccountName in~ (hardened_accounts)
+  | where AuthenticationType in~ ("AccountKey", "SAS")
+  | where StatusCode between (200 .. 299)
+  | summarize Requests = count(),
+              Operations = make_set(OperationName, 10),
+              IPs = make_set(CallerIpAddress, 10)
+              by AccountName, AuthenticationType
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: AccountName
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,33 @@
+id: 5fd65e47-fdf1-59c4-a25a-5b3c59cdbf9f
+name: 'Sentinel Audit - Analytics rule disabled, deleted or modified'
+description: |
+  Detects analytics rule delete, disable or update operations recorded in SentinelAudit. Attackers with workspace access weaken or disable detections to blind the SOC. Source guide: docs/sentinel-health.md.
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftSentinelAudit
+    dataTypes:
+      - SentinelAudit
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.001
+query: |
+  // Operational alert: analytics rules disabled, deleted or modified
+  SentinelAudit
+  | where TimeGenerated > ago(1h)
+  | where SentinelResourceType == 'AlertRule'
+  | where OperationName has_any ('Delete', 'Disable', 'Update')
+  | project TimeGenerated, Rule = SentinelResourceName, ResourceId = SentinelResourceId,
+            OperationName, Description, ExtendedProperties
+entityMappings:
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: ResourceId
+version: 1.0.0
+kind: Scheduled

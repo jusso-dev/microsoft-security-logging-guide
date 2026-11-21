@@ -1,0 +1,50 @@
+id: a6265641-5ada-5795-9ada-ca1a3ffa29b5
+name: 'Purview Insider Risk Management - Insider risk alert followed by bulk SharePoint or OneDrive downloads'
+description: |
+  Flags active data staging after an insider risk alert has already fired. Run hourly in Sentinel with a 24-hour lookback. MITRE: Collection T1213 and Exfiltration T1567. Source guide: data-security/insider-risk/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - SecurityAlert
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1d
+queryPeriod: 7d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+  - Exfiltration
+relevantTechniques:
+  - T1213
+  - T1567
+query: |
+  // CUSTOM - Bulk file downloads in OfficeActivity by a user with an active Insider Risk alert
+  // ASSUMPTION: Confirm Entity.UserPrincipalName in SecurityAlert for Insider Risk alerts in your tenant.
+  let irmUsers = SecurityAlert
+      | where TimeGenerated > ago(7d)
+      | where ProductName has "Insider" or ProviderName has "Insider"
+      | extend ParsedEntities = parse_json(Entities)
+      | mv-expand Entity = ParsedEntities
+      | extend AccountUpn = tolower(tostring(Entity.UserPrincipalName))
+      | where isnotempty(AccountUpn)
+      | summarize LatestIRM = max(TimeGenerated) by AccountUpn;
+  OfficeActivity
+  | where TimeGenerated > ago(24h)
+  | where Operation in ("FileDownloaded", "FileSyncDownloadedFull")
+  | extend AccountUpn = tolower(UserId)
+  | join kind=inner irmUsers on AccountUpn
+  | summarize Downloads = count(), Sites = dcount(Site_Url), SampleFiles = make_set(SourceFileName, 10)
+      by AccountUpn, LatestIRM
+  | where Downloads >= 50
+  | order by Downloads desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: AccountUpn
+version: 1.0.0
+kind: Scheduled

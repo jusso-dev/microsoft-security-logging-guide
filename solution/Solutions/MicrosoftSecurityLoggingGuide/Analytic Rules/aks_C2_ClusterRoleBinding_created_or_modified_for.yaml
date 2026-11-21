@@ -1,0 +1,48 @@
+id: 758f00e1-e9b3-5aba-8bae-61b38b7ec96c
+name: 'Azure Kubernetes Service (AKS) - ClusterRoleBinding created or modified for privileged access'
+description: |
+  Creating or modifying a ClusterRoleBinding (especially binding cluster-admin) grants cluster-wide control and is a classic Kubernetes persistence technique. MITRE: Privilege Escalation and Persistence, Account Manipulation T1098. Source guide: azure/aks/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureKubernetesServices
+    dataTypes:
+      - AKSAuditAdmin
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - PrivilegeEscalation
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - ClusterRoleBinding created, updated or patched outside system controllers
+  // ASSUMPTION: Verify your GitOps controller service account name (e.g. Flux or ArgoCD) and add to allow list.
+  let gitops_accounts = dynamic(["system:serviceaccount:flux-system:kustomize-controller"]);
+  AKSAuditAdmin
+  | where TimeGenerated > ago(1h)
+  | where Verb in ("create", "update", "patch")
+  | where tostring(ObjectRef.resource) in ("clusterrolebindings", "rolebindings")
+  | extend Username = tostring(User.username),
+           BindingName = tostring(ObjectRef.name),
+           Namespace = tostring(ObjectRef.namespace),
+           ResponseCode = toint(ResponseStatus.code)
+  | where ResponseCode between (200 .. 299)
+  | where Username !startswith "system:apiserver"
+      and Username !startswith "system:kube-controller-manager"
+      and Username !in~ (gitops_accounts)
+  | project TimeGenerated, Cluster = _ResourceId, Verb, Username,
+            ResourceType = tostring(ObjectRef.resource), Namespace, BindingName, SourceIps, RequestUri
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: Username
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Cluster
+version: 1.0.0
+kind: Scheduled

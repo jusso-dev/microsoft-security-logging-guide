@@ -1,0 +1,40 @@
+id: 3621d4ee-7cf5-5a87-be4f-c42b6690b8ce
+name: 'Defender for Cloud Apps - Bulk download by an external or guest user'
+description: |
+  MITRE: Exfiltration T1567. Two candidates from the issue are deliberately not included as custom rules. Impossible travel in cloud app use is fully covered by the MDCA built-in detection, which suppresses VPN and known-location false positives better than a hand-written join. Unusual OAuth app downloads are covered by the built-in Suspicious OAuth app file download activities plus app governance alerts, and rebuilding them in Sentinel would double-alert on the same event. Source guide: cloud-apps/defender-for-cloud-apps/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - CloudAppEvents
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1567
+query: |
+  // CUSTOM - Download burst by a user flagged as external to the organisation
+  // The built-in detections baseline internal users. A guest with a modest export never
+  // generates an anomaly because there is no baseline to violate.
+  // ASSUMPTION: IsExternalUser is not populated on every app connector. Validate coverage:
+  //   CloudAppEvents | where TimeGenerated > ago(7d) | summarize Rows = count(), Ext = countif(IsExternalUser) by Application
+  let hourly_downloads = 100;
+  CloudAppEvents
+  | where TimeGenerated > ago(1h)
+  | where IsExternalUser == true
+  | where ActionType has_cs "ownload" or ActivityType has_cs "ownload"
+  | summarize Downloads = count(), Apps = make_set(Application, 5), FirstSeen = min(TimeGenerated)
+      by AccountObjectId, AccountDisplayName
+  | where Downloads > hourly_downloads
+  | project FirstSeen, AccountObjectId, AccountDisplayName, Downloads, Apps
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: AadUserId
+        columnName: AccountObjectId
+version: 1.0.0
+kind: Scheduled

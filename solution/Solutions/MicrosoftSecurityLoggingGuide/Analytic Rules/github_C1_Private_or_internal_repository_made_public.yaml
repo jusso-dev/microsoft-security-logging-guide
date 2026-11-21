@@ -1,0 +1,36 @@
+id: 5fb7950f-6e48-5224-8e90-b244b6dd6135
+name: 'GitHub (Enterprise Cloud) - Private or internal repository made public'
+description: |
+  Exposing a private repository is one of the fastest paths to source-code and secret leakage. MITRE ATT&CK: Exfiltration T1567 (Exfiltration Over Web Service) and Impact. Source guide: devops/github/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: GitHubEnterpriseAuditLog
+    dataTypes:
+      - GitHubAuditData
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Exfiltration
+  - Impact
+relevantTechniques:
+  - T1567
+query: |
+  // CUSTOM - Repository visibility changed to public
+  // ASSUMPTION: GitHubAuditData exposes Action, Actor, Repo, Org and ActorIp.
+  // Confirm exact column names and Action values on your workspace:
+  //   GitHubAuditData | where TimeGenerated > ago(30d) | where Action has "repo.access" | take 5
+  GitHubAuditData
+  | where TimeGenerated > ago(1h)
+  | where Action =~ "repo.access"
+  | where tostring(Visibility) =~ "public" or tostring(RawData) has "\"visibility\":\"public\""
+  | project TimeGenerated, Actor, ActorIp, Org, Repo, Action
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

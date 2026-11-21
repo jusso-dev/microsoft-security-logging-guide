@@ -1,0 +1,39 @@
+id: 03e3934f-8baa-5f1d-add4-8ef9f5491a10
+name: 'Windows security event logs (clients) - Service installed from a user-writable path'
+description: |
+  MITRE: Persistence T1543.003, Create or Modify System Process: Windows Service. A service binary in Users, ProgramData or Temp is persistence until proven otherwise. Source guide: endpoint/windows-security-events/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1543.003
+query: |
+  // CUSTOM - New service whose binary lives outside Program Files and System32
+  // 7045 is a low-volume event, so alert on everything that isn't a standard install path.
+  SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID == 7045
+  | where ServiceFileName !has ":\\Windows\\"
+      and ServiceFileName !has ":\\Program Files\\"
+      and ServiceFileName !has ":\\Program Files (x86)\\"
+  | project TimeGenerated, Computer, SubjectUserName, ServiceName, ServiceFileName, ServiceStartType
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: SubjectUserName
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

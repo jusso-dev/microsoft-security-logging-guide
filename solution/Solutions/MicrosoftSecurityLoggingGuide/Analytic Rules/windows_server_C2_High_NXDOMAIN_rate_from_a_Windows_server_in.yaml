@@ -1,0 +1,38 @@
+id: 17b2fd03-aa50-51e4-a4af-6f276e42726f
+name: 'Windows Server - High NXDOMAIN rate from a Windows server in ASIM DNS logs'
+description: |
+  MITRE: Command and Control T1568.002 (Domain Generation Algorithms) and T1071.004 (DNS). Source guide: servers/windows-server/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: WindowsServerDNS
+    dataTypes:
+      - ASimDnsActivityLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CommandAndControl
+relevantTechniques:
+  - T1071.004
+  - T1568.002
+query: |
+  // CUSTOM - Server generating a burst of NXDOMAIN responses, indicating DGA or DNS tunnelling
+  // ASSUMPTION: Windows DNS Events via AMA populates ASimDnsActivityLogs with EventResultDetails == "NXDOMAIN".
+  // Tune threshold against vulnerability scanners and misconfigured internal services.
+  ASimDnsActivityLogs
+  | where TimeGenerated > ago(1h)
+  | where EventResultDetails =~ "NXDOMAIN"
+  | summarize UniqueDomains = dcount(DnsQuery), TotalQueries = count(),
+              SampleDomains = make_set(DnsQuery, 10)
+              by SrcIpAddr, DvcHostname
+  | where UniqueDomains >= 50
+  | project DvcHostname, SrcIpAddr, UniqueDomains, TotalQueries, SampleDomains
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SrcIpAddr
+version: 1.0.0
+kind: Scheduled

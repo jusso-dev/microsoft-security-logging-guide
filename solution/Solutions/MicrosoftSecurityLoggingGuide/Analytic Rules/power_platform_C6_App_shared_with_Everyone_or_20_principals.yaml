@@ -1,0 +1,45 @@
+id: 1478a31d-63ff-5f93-a077-9edd4520a375
+name: 'Power Platform (Power Apps, Power Automate, Power Platform admin) - App shared with Everyone or 20+ principals in an hour'
+description: |
+  The out-of-box rule only watches newly invited guests. This rule also catches tenant-wide sharing, which is how a phishing or credential-harvesting canvas app reaches the whole organisation. MITRE: Lateral Movement T1534. Source guide: business-apps/power-platform/README.md (C6).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: PowerPlatformAdmin
+    dataTypes:
+      - PowerPlatformAdminActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - LateralMovement
+  - Collection
+relevantTechniques:
+  - T1534
+query: |
+  // CUSTOM - Canvas app shared with Everyone or a large audience
+  // ASSUMPTION: sharing with Everyone records your tenant ID as targetuser.id. Test on a sandbox app first.
+  let tenant_id = "<your-tenant-guid>";
+  PowerPlatformAdminActivity
+  | where TimeGenerated > ago(1h)
+  | where EventOriginalType in ("PowerAppPermissionEdited", "AdminModifyAppPermissions")
+  | extend Properties = tostring(PropertyCollection)
+  | extend AppId = tolower(replace_string(extract(@'"powerplatform.analytics.resource.power_app.id","Value":"([^"]+)"', 1, Properties),
+                                          "/providers/Microsoft.PowerApps/apps/", "")),
+           TargetPrincipalId = extract(@'"targetuser.id","Value":"([^"]+)"', 1, Properties)
+  | summarize Grants = count(), Targets = dcount(TargetPrincipalId),
+              Everyone = countif(TargetPrincipalId =~ tenant_id), SampleTargets = make_set(TargetPrincipalId, 50)
+              by ActorName, AppId, bin(TimeGenerated, 1h)
+  | where Everyone > 0 or Targets >= 20
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: AppId
+        columnName: AppId
+version: 1.0.0
+kind: Scheduled

@@ -29,7 +29,16 @@ Pick your goal below to jump straight to the right page (or open the full [Start
 | **Cut Sentinel ingestion costs or estimate spend before onboarding** | Run the 7 queries in [Cost estimation](docs/cost-estimation.md) ([queries/cost/](queries/cost/README.md)) and move hunt-only tables to the data lake using [Data lake tiering](docs/data-lake-tiering.md). |
 | **Check if every table is landing and alert when a feed stops** | Run [health-all-tables.kql](queries/validation/health-all-tables.kql) from the [Validation query pack](queries/validation/README.md) and set up `SentinelHealth` alerts with [Sentinel health and audit](docs/sentinel-health.md). |
 | **Feed VIP users, leavers or IP ranges into detections** | Set up UEBA `IdentityInfo` and watchlists using [Watchlists and enrichment](docs/watchlists.md). |
+| **Deploy the guide's KQL detections, hunting queries and workbooks to Sentinel** | Use the one-click [Microsoft Sentinel Content Hub V3 solution](solution/README.md) (122 analytic rules, 22 hunting queries and 2 workbooks) or the [Defender XDR custom detections](defender-xdr/README.md). |
 | **Onboard a specific product** | Jump to your product group below, or browse [by threat and workload](docs/start-here.md#by-threat-or-workload-im-trying-to-monitor). |
+
+## Deploy to Microsoft Sentinel
+
+Deploy all 122 Sentinel analytic rule templates, 22 hunting queries and 2 operational workbooks (Ingestion Health and Cost Estimation) into an existing Log Analytics workspace in one click:
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjusso-dev%2Fmicrosoft-security-logging-guide%2Fmain%2Fsolution%2FSolutions%2FMicrosoftSecurityLoggingGuide%2FPackage%2FmainTemplate.json)
+
+Analytic rules deploy as disabled Content Hub V3 templates so you can enable and tune only the connectors you ingest. See [solution/README.md](solution/README.md) for Azure CLI and PowerShell deployment commands, and [defender-xdr/README.md](defender-xdr/README.md) for the 15 Defender XDR custom detections that run directly against native XDR tables without Sentinel ingestion costs.
 
 Every product guide follows the same [template](TEMPLATE.md), so once you open one you can jump straight to **High-value log sources**, **Step-by-step setup**, **Validation KQL**, **Out-of-box analytic rules** or **Custom detections**. Check the **Last verified** date at the bottom of each guide.
 
@@ -121,6 +130,8 @@ Each group page starts with an **"I'm trying to..."** guide for that area, a tab
 ```text
 docs/              Start here, architecture, prioritisation, tiering, cost, health and watchlists
 queries/           Validation and cost estimation KQL packs
+solution/          Microsoft Sentinel Content Hub V3 solution package and ARM template
+defender-xdr/      Defender XDR custom detection rule definitions and advanced hunting queries
 TEMPLATE.md        The structure every product guide follows
 CHANGELOG.md       Dated history of manual and nightly automated updates
 identity/          Entra ID, ID Protection, Defender for Identity, AD DS, AD FS, Global Secure Access

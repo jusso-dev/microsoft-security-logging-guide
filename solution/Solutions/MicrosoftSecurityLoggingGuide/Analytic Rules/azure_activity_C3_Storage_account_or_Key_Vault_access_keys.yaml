@@ -1,0 +1,40 @@
+id: 87a8556c-f48f-54c1-bccb-9ab2fdadb0ed
+name: 'Azure Activity (control plane) - Storage account or Key Vault access keys listed by an unusual caller'
+description: |
+  Listing storage account keys via ARM gives full data plane access to every blob and file share in the account, bypassing Entra RBAC. MITRE: Credential Access, Unsecured Credentials T1552. Source guide: azure/azure-activity/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1552
+query: |
+  // CUSTOM - Storage account listKeys operation by caller outside known automation
+  // ASSUMPTION: OperationNameValue matches MICROSOFT.STORAGE/STORAGEACCOUNTS/LISTKEYS/ACTION.
+  // Check 30 days of history first to populate known_callers.
+  let known_callers = dynamic(["backup-automation-spn"]);
+  AzureActivity
+  | where TimeGenerated > ago(1h)
+  | where OperationNameValue =~ "MICROSOFT.STORAGE/STORAGEACCOUNTS/LISTKEYS/ACTION"
+  | where ActivityStatusValue in~ ("Success", "Succeeded")
+  | where Caller !in~ (known_callers)
+  | summarize Calls = count(), Accounts = make_set(ResourceId, 10) by Caller, CallerIpAddress, SubscriptionId
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Caller
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+version: 1.0.0
+kind: Scheduled

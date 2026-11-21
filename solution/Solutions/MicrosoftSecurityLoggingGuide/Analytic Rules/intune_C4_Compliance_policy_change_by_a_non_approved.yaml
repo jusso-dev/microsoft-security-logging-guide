@@ -1,0 +1,37 @@
+id: 121db8e6-cff0-5fc3-8d33-795807439d17
+name: 'Intune - Compliance policy change by a non-approved admin'
+description: |
+  Compliance policies gate Conditional Access. Deleting or weakening one can re-admit noncompliant devices to your apps. MITRE: Defense Evasion T1562.001. Source guide: endpoint/intune/README.md (C4).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: Intune
+    dataTypes:
+      - IntuneAuditLogs
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.001
+query: |
+  // CUSTOM - Compliance policy change outside the approved admin list
+  let approved_admins = dynamic(["intune-admin@yourdomain.gov.au"]);
+  // ASSUMPTION: the audit schema lists Compliance as category value 2, but your table may store
+  // the name or the number. Check both forms with validation query 2.
+  IntuneAuditLogs
+  | where TimeGenerated > ago(24h)
+  | where Category =~ "compliance" or Category == "2"
+  | where Identity !in~ (approved_admins)
+  | summarize FirstSeen = min(TimeGenerated), Sample = any(Properties)
+              by OperationName, Actor = Identity, CorrelationId
+  | project FirstSeen, OperationName, Actor, Sample
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,43 @@
+id: c7708aef-99df-5a90-94d6-bde7cf2d8d8d
+name: 'Purview Data Loss Prevention - Repeated DLP overrides or false-positive markings by one user'
+description: |
+  Users who repeatedly bypass DLP blocks with business justification or mark matches as false positives (DlpRuleUndo) can indicate data exfiltration or a broken policy. Run hourly in Sentinel with a 24-hour lookback. MITRE: Exfiltration T1048 and Collection T1530. Source guide: data-security/purview-dlp/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+  - Exfiltration
+relevantTechniques:
+  - T1048
+  - T1530
+query: |
+  // CUSTOM - Spike in DLP overrides or false-positive undo events by a single user
+  // ASSUMPTION: DlpRuleUndo captures SharePoint/OneDrive overrides and false positives,
+  // while Exchange overrides appear inside DlpRuleMatch properties. Verify fields in your tenant.
+  OfficeActivity
+  | where TimeGenerated > ago(24h)
+  | where Operation in ("DlpRuleUndo", "DlpRuleMatch")
+  | where Operation == "DlpRuleUndo" or tostring(Parameters) has_any ("Override", "FalsePositive")
+  | summarize Events = count(), Operations = make_set(Operation, 5), Workloads = make_set(OfficeWorkload, 5)
+      by UserId, ClientIP
+  | where Events >= 5
+  | order by Events desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,46 @@
+id: 4853cf60-781c-511d-94cf-f5b1b5c8ffef
+name: 'Entra Internet Access and Private Access (Global Secure Access) - Shadow MCP server first seen'
+description: |
+  MITRE: Command and Control T1071. Cross-tenant B2B spikes are already covered by the native Increased External Tenant Activity alert, which lands in NetworkAccessAlerts, so there is no custom rule for them here. Enable the NetworkAccessAlerts category and let the product do that one. Source guide: identity/entra-global-secure-access/README.md (C4).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: GlobalSecureAccess
+    dataTypes:
+      - NetworkAccessGenerativeAIInsights
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CommandAndControl
+relevantTechniques:
+  - T1071
+query: |
+  // CUSTOM - MCP traffic to a destination URL never seen in the last 14 days
+  // The MCP Servers Dashboard workbook shows current MCP servers, but the solution ships no
+  // detection for a NEW one. Needs the NetworkAccessGenerativeAIInsights diagnostic category
+  // and TLS inspection, or the Copilot Studio integration path.
+  // ASSUMPTION: Activity is "MCP" for MCP operations and "Prompt" for prompt events, per the
+  // Generative AI Insights docs. Pin values first:
+  // NetworkAccessGenerativeAIInsights | where TimeGenerated > ago(1d) | summarize Rows = count() by Activity, SubActivity
+  let lookback = 14d;
+  let known =
+      NetworkAccessGenerativeAIInsights
+      | where TimeGenerated between (ago(lookback) .. ago(1h))
+      | where Activity == "MCP"
+      | summarize by DestinationUrl;
+  NetworkAccessGenerativeAIInsights
+  | where TimeGenerated > ago(1h)
+  | where Activity == "MCP"
+  | where DestinationUrl !in (known)
+  | summarize FirstSeen = min(TimeGenerated), Users = dcount(UserPrincipalName),
+              Primitives = make_set(McpPrimitiveNames, 10) by DestinationUrl
+  | project DestinationUrl, FirstSeen, Users, Primitives
+entityMappings:
+  - entityType: URL
+    fieldMappings:
+      - identifier: Url
+        columnName: DestinationUrl
+version: 1.0.0
+kind: Scheduled

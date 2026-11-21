@@ -1,0 +1,53 @@
+id: 61dcbaec-b731-5662-9dfd-f01c716d536e
+name: 'Purview Insider Risk Management - Insider risk alert paired with risky Entra ID sign-in'
+description: |
+  Helps the SOC quickly tell whether an insider risk alert is actually a compromised account used by an external attacker. Run hourly in Sentinel with a 24-hour lookback. MITRE: Initial Access T1078 and Exfiltration T1530. Source guide: data-security/insider-risk/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - SecurityAlert
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - Exfiltration
+  - Collection
+relevantTechniques:
+  - T1078
+  - T1530
+query: |
+  // CUSTOM - Insider Risk alert for a user who also had a medium or high risk Entra ID sign-in
+  // ASSUMPTION: SigninLogs RiskLevelDuringSignIn requires Entra ID P2; otherwise it returns "hidden".
+  // Verify Entities JSON structure in SecurityAlert for your tenant's Insider Risk alerts.
+  let irmUsers = SecurityAlert
+      | where TimeGenerated > ago(24h)
+      | where ProductName has "Insider" or ProviderName has "Insider"
+      | extend ParsedEntities = parse_json(Entities)
+      | mv-expand Entity = ParsedEntities
+      | extend AccountUpn = tolower(tostring(Entity.UserPrincipalName))
+      | where isnotempty(AccountUpn)
+      | summarize IRMAlerts = make_set(AlertName, 5), LatestIRM = max(TimeGenerated) by AccountUpn;
+  SigninLogs
+  | where TimeGenerated > ago(24h)
+  | where RiskLevelDuringSignIn in ("medium", "high")
+  | extend AccountUpn = tolower(UserPrincipalName)
+  | join kind=inner irmUsers on AccountUpn
+  | project TimeGenerated, AccountUpn, RiskLevelDuringSignIn, IPAddress, Location, IRMAlerts, LatestIRM
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: AccountUpn
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IPAddress
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,35 @@
+id: 9b145025-cd8b-51a8-9661-c9b43fe18b62
+name: 'Intune - Intune role or scope change'
+description: |
+  New Intune RBAC roles or assignments are how an attacker keeps the ability to run device actions after the initial account is fixed. MITRE: Privilege Escalation T1098.003, additional cloud roles. Source guide: endpoint/intune/README.md (C5).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Intune
+    dataTypes:
+      - IntuneAuditLogs
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - PrivilegeEscalation
+  - Persistence
+relevantTechniques:
+  - T1098.003
+query: |
+  // CUSTOM - Intune role created, changed or deleted
+  // ASSUMPTION: the audit schema lists Role as category value 9. Confirm how your table stores it.
+  IntuneAuditLogs
+  | where TimeGenerated > ago(24h)
+  | where Category =~ "role" or Category == "9"
+  | summarize FirstSeen = min(TimeGenerated), Sample = any(Properties)
+              by OperationName, Actor = Identity, CorrelationId
+  | project FirstSeen, OperationName, Actor, Sample
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,24 @@
+id: e5dd3895-44cd-5d55-9174-eab79e05ba7d
+name: 'Sentinel Audit - Failed or extremely slow workspace queries'
+description: |
+  Finds failed queries (ResponseCode != 200) or queries taking over 5 minutes in LAQueryLogs. Source guide: docs/sentinel-health.md.
+requiredDataConnectors:
+  - connectorId: AzureMonitor
+    dataTypes:
+      - LAQueryLogs
+tactics:
+  - Impact
+relevantTechniques:
+  - T1499
+query: |
+  // Failed or extremely slow queries
+  LAQueryLogs
+  | where TimeGenerated > ago(7d)
+  | where ResponseCode != 200 or ResponseDurationMs > 300000
+  | project TimeGenerated, AADEmail, ResponseCode, ResponseDurationMs, RequestClientApp, QueryText
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: AADEmail
+version: 1.0.0

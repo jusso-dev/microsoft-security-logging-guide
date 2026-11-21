@@ -1,0 +1,39 @@
+id: 3fd44135-2314-5f81-a0f5-8f76ec0dd18e
+displayName: 'Defender for Identity - Dormant account added to a privileged group'
+description: |
+  MDI's "Suspicious additions to sensitive groups" profiles the actor making the change. A careful attacker using an admin account on a quiet domain can stay under the behavioural threshold. This rule looks at the target instead: an account with no recent logon history, added to a Tier 0 group. MITRE: Persistence T1098 (Account Manipulation), matching MDI external ID 2024. Source guide: identity/defender-for-identity/README.md (C2).
+severity: High
+frequency: PT1H
+lookbackPeriod: P1D
+sourceGuide: 'identity/defender-for-identity/README.md'
+requiredTables:
+  - IdentityDirectoryEvents
+  - IdentityLogonEvents
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1098
+entityMappings:
+  - entityType: User
+    identifier: AccountUpn
+    columnName: ActorUpn
+recommendedActions: |
+  Verify whether the Tier 0 group addition was authorised under change control; remove the dormant account and audit the initiating administrator if unapproved.
+query: |
+  // Defender XDR custom detection: account with no recent logons added to a Tier 0 AD group
+  // ASSUMPTION: confirm ActionType and AdditionalFields property names in your tenant.
+  let tier0_groups = dynamic(["Domain Admins", "Enterprise Admins", "Schema Admins", "Account Operators", "Administrators"]);
+  IdentityDirectoryEvents
+  | where Timestamp > ago(1h)
+  | where ActionType has_cs "Group"
+  | extend GroupName = tostring(parse_json(AdditionalFields).TARGET_OBJECT_ORIGINAL_NAME)
+  | extend AddedAccount = tolower(tostring(parse_json(AdditionalFields).TARGET_ACCOUNT_NAME))
+  | where GroupName in~ (tier0_groups) and isnotempty(AddedAccount)
+  | join kind=leftouter (
+      IdentityLogonEvents
+      | where Timestamp > ago(30d)
+      | extend AccountName = tolower(AccountName)
+      | summarize LastLogon = max(Timestamp) by AccountName
+  ) on $left.AddedAccount == $right.AccountName
+  | where isempty(LastLogon) or LastLogon < ago(30d)
+  | project Timestamp, ReportId, AddedAccount, GroupName, Actor = AccountName, ActorUpn = AccountUpn, LastLogon

@@ -1,0 +1,45 @@
+id: d905a73c-6adc-5c89-9b3f-54535388421b
+name: 'Entra ID (sign-in, audit and Graph activity logs) - Dormant service principal suddenly active'
+description: |
+  A dormant app waking up is often a decommissioned integration left with valid credentials, sometimes a compromised one. MITRE: Initial Access and Persistence, valid accounts T1078.004. Source guide: identity/entra-id/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - AADServicePrincipalSignInLogs
+queryFrequency: 1d
+queryPeriod: 14d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - Persistence
+relevantTechniques:
+  - T1078.004
+query: |
+  // CUSTOM - Service principal with no successful sign-ins for 60 days suddenly signs in
+  // ASSUMPTION: ResultType 0 means success, matching the documented SigninLogs convention.
+  // Confirm with a sample before enabling.
+  let baseline = AADServicePrincipalSignInLogs
+      | where TimeGenerated between (ago(60d) .. ago(1d))
+      | where ResultType == "0"
+      | summarize LastSeen = max(TimeGenerated) by ServicePrincipalId;
+  AADServicePrincipalSignInLogs
+  | where TimeGenerated > ago(1d)
+  | where ResultType == "0"
+  | join kind=leftanti baseline on ServicePrincipalId
+  | summarize FirstSeen = min(TimeGenerated), SignIns = count(),
+              IPs = make_set(IPAddress, 10), Resources = make_set(ResourceDisplayName, 10)
+              by ServicePrincipalId, ServicePrincipalName
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: AadUserId
+        columnName: ServicePrincipalId
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: ServicePrincipalName
+version: 1.0.0
+kind: Scheduled

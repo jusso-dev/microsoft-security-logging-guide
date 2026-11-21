@@ -1,0 +1,41 @@
+id: aa696a4d-33d2-5dda-be86-04f979531a0e
+displayName: 'Defender for Endpoint - Office app spawns a script interpreter, then the device calls out'
+description: |
+  MITRE: Execution T1059 followed by Command and Control T1071. This is the classic macro or phishing attachment pattern. Source guide: endpoint/defender-for-endpoint/README.md (C1).
+severity: High
+frequency: PT1H
+lookbackPeriod: PT2H
+sourceGuide: 'endpoint/defender-for-endpoint/README.md'
+requiredTables:
+  - DeviceProcessEvents
+  - DeviceNetworkEvents
+tactics:
+  - Execution
+  - CommandAndControl
+relevantTechniques:
+  - T1059
+  - T1071
+entityMappings:
+  - entityType: Device
+    identifier: DeviceId
+    columnName: DeviceId
+recommendedActions: |
+  Isolate the endpoint if the spawned script or destination IP is unauthorised, inspect the Office document source and review recent network connections.
+query: |
+  // Defender XDR custom detection: Office app spawned a script interpreter, then the device called out
+  let office_apps = dynamic(["winword.exe", "excel.exe", "powerpnt.exe", "outlook.exe", "msaccess.exe"]);
+  let interpreters = dynamic(["powershell.exe", "cmd.exe", "wscript.exe", "cscript.exe", "mshta.exe"]);
+  let spawns = DeviceProcessEvents
+  | where Timestamp > ago(2h)
+  | where InitiatingProcessFileName in~ (office_apps)
+  | where FileName in~ (interpreters)
+  | project DeviceId, FirstSeen = Timestamp, Parent = InitiatingProcessFileName,
+            Interpreter = FileName, Cmd = ProcessCommandLine;
+  DeviceNetworkEvents
+  | where Timestamp > ago(1h)
+  | where RemoteIPType == "Public"
+  | join kind=inner spawns on DeviceId
+  | where Timestamp > FirstSeen
+  | summarize Timestamp = max(Timestamp), ReportId = any(ReportId),
+              Connections = count(), DestIPs = make_set(RemoteIP, 5), Ports = make_set(RemotePort, 5)
+      by DeviceId, DeviceName, Parent, Interpreter, Cmd

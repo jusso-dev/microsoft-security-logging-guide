@@ -1,0 +1,37 @@
+id: 4bcbc296-87a4-52e4-a3aa-6939accae884
+name: 'Dataverse and Dynamics 365 - System Administrator role assigned in Dataverse'
+description: |
+  The out-of-box suspicious security role rule targets short-lived roles created and removed rapidly. This rule catches any direct assignment of the built-in System Administrator role. Pair with ApplyAdminRole detection in Power Platform. MITRE: Privilege Escalation T1098. Source guide: business-apps/dataverse-dynamics-365/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Dataverse
+    dataTypes:
+      - DataverseActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - PrivilegeEscalation
+  - Persistence
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - System Administrator security role assigned to a user in Dataverse
+  // ASSUMPTION: System Administrator roleid values are unique per Dataverse environment.
+  // Populate sysadmin_role_ids from a watchlist or query your environments first.
+  let sysadmin_role_ids = dynamic(["<System Administrator roleid, per environment>"]);
+  DataverseActivity
+  | where TimeGenerated > ago(1h)
+  | where Message == "Associate" and EntityName == "systemuser"
+  | mv-expand Field = Fields
+  | where tostring(Field.Name) == "role" and tostring(Field.Value) in~ (sysadmin_role_ids)
+  | project TimeGenerated, Actor = UserId, Action = "System Administrator role assigned", Environment = InstanceUrl, TargetUserId = tostring(EntityId)
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

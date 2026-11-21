@@ -1,0 +1,48 @@
+id: aec7d164-5b54-54f8-bc3b-5792c43a9e13
+name: 'Exchange Online - Inbox rule or mailbox forwarding to an external domain'
+description: |
+  Most legitimate forwarding goes to internal addresses or known partners. Feed internal_domains from a watchlist and treat new external destinations as worth a call. MITRE: Exfiltration T1114, Collection T1114. Source guide: email-collab/exchange-online/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+  - Exfiltration
+relevantTechniques:
+  - T1114
+query: |
+  // CUSTOM - New or modified inbox rule, or Set-Mailbox, forwarding outside the org.
+  // Catches single-mailbox external forwarding that the OOB shared-destination rule
+  // only catches when two or more mailboxes point at the same destination.
+  // ASSUMPTION: ForwardTo, RedirectTo and ForwardingSmtpAddress are the parameter
+  // names in OfficeActivity Parameters. They match the OOB Office_MailForwarding rule.
+  let internal_domains = dynamic(["yourdomain.gov.au"]);
+  OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where OfficeWorkload =~ "Exchange"
+  | where Operation in~ ("New-InboxRule", "Set-InboxRule", "Set-Mailbox")
+  | mv-expand P = todynamic(Parameters)
+  | where tostring(P.Name) in~ ("ForwardTo", "RedirectTo", "ForwardingSmtpAddress")
+  | extend Destination = tostring(P.Value)
+  | mv-expand split(Destination, ";")
+  | extend DestDomain = tolower(tostring(split(tostring(Destination), "@")[1]))
+  | where isnotempty(DestDomain) and DestDomain !in (internal_domains)
+  | project TimeGenerated, UserId, ClientIP, Operation, Destination = tostring(Destination)
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

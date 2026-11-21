@@ -11,3 +11,9 @@ KQL queries for measuring Microsoft Sentinel ingestion volume, finding noisy sou
 | [05-top-noisy-events-and-hosts.kql](05-top-noisy-events-and-hosts.kql) | Top noisy Windows Event IDs, `AzureDiagnostics` categories and hosts | Sentinel workspace |
 | [06-commitment-tier-sizing.kql](06-commitment-tier-sizing.kql) | Daily billable GB percentiles for commitment tier selection | Sentinel workspace |
 | [07-xdr-streaming-cost-preview.kql](07-xdr-streaming-cost-preview.kql) | Estimate GB/day of Defender XDR tables before enabling Sentinel streaming | Defender XDR advanced hunting |
+
+## One-click Sentinel workbook deployment
+
+Queries 1 to 6 are packaged as the **Cost Estimation and Volume Monitoring** workbook inside the [Microsoft Sentinel solution package](../../solution/README.md) (query 7 is also included in [defender-xdr/](../../defender-xdr/README.md)):
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjusso-dev%2Fmicrosoft-security-logging-guide%2Fmain%2Fsolution%2FSolutions%2FMicrosoftSecurityLoggingGuide%2FPackage%2FmainTemplate.json)

@@ -1,0 +1,43 @@
+id: efb832e1-7211-5591-baa8-08a6ad186e4d
+name: 'Copilot Studio - Agent or component modified by an unapproved maker in production'
+description: |
+  Catches unauthorised agent publishing, prompt/topic tampering or tool additions in production environments. MITRE: Persistence T1098, Execution T1059. Source guide: business-apps/copilot-studio/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: Dataverse
+    dataTypes:
+      - DataverseActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+  - Persistence
+relevantTechniques:
+  - T1059
+  - T1098
+query: |
+  // CUSTOM - Copilot Studio agent or topic/component created or changed in production outside approved makers
+  // ASSUMPTION: replace prod_instances and approved_makers with watchlists for your tenant.
+  let prod_instances = dynamic(["https://your-prod-env.crm6.dynamics.com"]);
+  let approved_makers = dynamic(["agent-builder@yourdomain.gov.au"]);
+  DataverseActivity
+  | where TimeGenerated > ago(1h)
+  | where InstanceUrl in~ (prod_instances)
+  | where EntityName in ("bot", "botcomponent") and Message in ("Create", "Update", "Delete")
+  | where UserId !in~ (approved_makers)
+  | summarize Changes = count(), Tables = make_set(EntityName), Messages = make_set(Message)
+              by UserId, ClientIp, InstanceUrl, EntityId
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIp
+version: 1.0.0
+kind: Scheduled

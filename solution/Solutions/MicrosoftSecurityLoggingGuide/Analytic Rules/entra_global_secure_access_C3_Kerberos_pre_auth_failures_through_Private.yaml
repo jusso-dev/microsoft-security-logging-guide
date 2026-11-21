@@ -1,0 +1,40 @@
+id: d1abb28c-eed2-52ee-99a8-dd3b3144b50e
+name: 'Entra Internet Access and Private Access (Global Secure Access) - Kerberos pre-auth failures through Private Access'
+description: |
+  MITRE: Credential Access T1110. Source guide: identity/entra-global-secure-access/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: GlobalSecureAccess
+    dataTypes:
+      - NetworkAccessTraffic
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1110
+query: |
+  // CUSTOM - Burst of Kerberos pre-auth failures from one principal or IP in 10 minutes
+  // Password spraying against on-prem apps exposed through the Private Access ZTNA path.
+  // ASSUMPTION: Kerberos columns only populate for private access flows that use Kerberos SSO.
+  // Verify with: NetworkAccessTraffic | where TimeGenerated > ago(1d) | where isnotempty(KerberosErrorCodeName) | take 10
+  NetworkAccessTraffic
+  | where TimeGenerated > ago(10m)
+  | where KerberosErrorCodeName == "KDC_ERR_PREAUTH_FAILED"
+  | summarize Failures = count(), Targets = dcount(ServicePrincipalName) by UserPrincipalName, SourceIp, bin(TimeGenerated, 10m)
+  | where Failures > 10 or Targets > 5
+  | project TimeGenerated, UserPrincipalName, SourceIp, Failures, Targets
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserPrincipalName
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIp
+version: 1.0.0
+kind: Scheduled

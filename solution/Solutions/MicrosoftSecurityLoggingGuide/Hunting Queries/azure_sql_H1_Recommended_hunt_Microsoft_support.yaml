@@ -1,0 +1,22 @@
+id: f97326b3-590a-51a8-b842-2acee1c0932b
+name: 'Azure SQL Database and Managed Instance - Recommended hunt: Microsoft support operations review'
+description: |
+  - **Recommended hunt: Microsoft support operations review.** Run weekly to confirm every DevOpsOperationsAudit row ties back to an open support ticket: Source guide: azure/azure-sql/README.md.
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureDiagnostics
+tactics:
+  - Discovery
+query: |
+  AzureDiagnostics
+  | where TimeGenerated > ago(7d)
+  | where Category == "DevOpsOperationsAudit"
+  | project TimeGenerated, Resource, database_name_s, client_ip_s, action_name_s, statement_s
+  | order by TimeGenerated desc
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: client_ip_s
+version: 1.0.0

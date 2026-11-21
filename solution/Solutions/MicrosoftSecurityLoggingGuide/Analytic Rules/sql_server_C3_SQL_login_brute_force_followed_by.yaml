@@ -1,0 +1,51 @@
+id: 7d5b2f86-666b-51db-8ac8-102154ba9a77
+name: 'SQL Server (on-premises and IaaS) - SQL login brute force followed by successful login'
+description: |
+  MITRE: Credential Access T1110 (Brute Force). Source guide: servers/sql-server/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1110
+query: |
+  // CUSTOM - Burst of failed SQL logins (LGIF) followed by a successful login (LGIS)
+  // ASSUMPTION: FAILED_LOGIN_GROUP and SUCCESSFUL_LOGIN_GROUP are enabled in SQL Server Audit.
+  let failures = SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID == 33205
+  | extend ActionId = trim(" ", extract(@"action_id:([^\r\n]+)", 1, EventData)),
+           Principal = trim(" ", extract(@"server_principal_name:([^\r\n]+)", 1, EventData)),
+           ClientIp = trim(" ", extract(@"client_ip:([^\r\n]+)", 1, EventData))
+  | where ActionId == "LGIF"
+  | summarize FailCount = count(), FirstFail = min(TimeGenerated) by Computer, Principal, ClientIp
+  | where FailCount >= 10;
+  SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID == 33205
+  | extend ActionId = trim(" ", extract(@"action_id:([^\r\n]+)", 1, EventData)),
+           Principal = trim(" ", extract(@"server_principal_name:([^\r\n]+)", 1, EventData)),
+           ClientIp = trim(" ", extract(@"client_ip:([^\r\n]+)", 1, EventData))
+  | where ActionId == "LGIS"
+  | join kind=inner failures on Computer, Principal, ClientIp
+  | where TimeGenerated >= FirstFail
+  | project TimeGenerated, Computer, Principal, ClientIp, FailCount
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIp
+version: 1.0.0
+kind: Scheduled

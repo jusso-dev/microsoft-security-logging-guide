@@ -1,0 +1,44 @@
+id: f596298c-14ab-5a32-872c-530fa75872da
+name: 'Foundry (formerly Azure AI Foundry) and Azure OpenAI - Spike in HTTP 401/403 or 429 responses on Foundry inference endpoints'
+description: |
+  Sudden authentication failures indicate key stuffing or stolen-key probing; sustained HTTP 429 (QuotaExceeded) spikes from an unusual IP can signal API key leakage and unauthorised model consumption (denial-of-wallet). MITRE ATT&CK: Impact T1499 (Endpoint Denial of Service) and Credential Access T1110. Source guide: ai/azure-openai-ai-foundry/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureDiagnostics
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+  - Impact
+relevantTechniques:
+  - T1110
+  - T1499
+query: |
+  // CUSTOM - Burst of auth failures or throttling on Cognitive Services / Azure OpenAI endpoints
+  // ASSUMPTION: ResultSignature holds the HTTP status code string (for example "401", "403", "429")
+  // in AzureDiagnostics for RequestResponse / Audit categories. Confirm column name (ResultSignature
+  // vs StatusCode_d) on a sample row in your workspace before enabling.
+  AzureDiagnostics
+  | where TimeGenerated > ago(1h)
+  | where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+  | where Category in ("RequestResponse", "Audit")
+  | extend HttpStatus = coalesce(tostring(ResultSignature), tostring(column_ifexists("StatusCode_d", "")))
+  | where HttpStatus in ("401", "403", "429")
+  | summarize FailureCount = count(),
+              Operations = make_set(OperationName, 10),
+              Statuses = make_set(HttpStatus, 5)
+              by Resource, CallerIPAddress, bin(TimeGenerated, 1h)
+  | where FailureCount >= 50
+  | project TimeGenerated, Resource, CallerIPAddress, FailureCount, Statuses, Operations
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIPAddress
+version: 1.0.0
+kind: Scheduled

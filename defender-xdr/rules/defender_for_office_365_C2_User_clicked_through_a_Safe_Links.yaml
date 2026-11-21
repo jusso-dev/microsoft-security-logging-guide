@@ -1,0 +1,34 @@
+id: f112da8b-656b-538f-bfa6-8031a8532f72
+displayName: 'Defender for Office 365 - User clicked through a Safe Links warning page'
+description: |
+  Safe Links did its job and the user went anyway. Treat the account as possibly compromised: check the device and recent sign-ins. MITRE: Initial Access T1566.002, Execution T1204.001. The same logic ships as a hunting query in the Defender XDR solution, but not as a rule, so this closes the gap. Source guide: email-collab/defender-for-office-365/README.md (C2).
+severity: High
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'email-collab/defender-for-office-365/README.md'
+requiredTables:
+  - UrlClickEvents
+tactics:
+  - InitialAccess
+  - Execution
+relevantTechniques:
+  - T1204.001
+  - T1566.002
+entityMappings:
+  - entityType: User
+    identifier: AccountUpn
+    columnName: AccountUpn
+  - entityType: MailMessage
+    identifier: NetworkMessageId
+    columnName: NetworkMessageId
+recommendedActions: |
+  Treat the account as potentially compromised: inspect sign-ins and endpoint activity after the click, and revoke sessions if credentials were entered.
+query: |
+  // Defender XDR custom detection: click allowed or user continued past a phishing Safe Links warning
+  UrlClickEvents
+  | where Timestamp > ago(1h)
+  | where ActionType == "ClickAllowed" or IsClickedThrough != 0
+  | where ThreatTypes has "Phish"
+  | summarize Timestamp = min(Timestamp), Latest = max(Timestamp)
+      by ReportId, AccountUpn, Url, NetworkMessageId, IPAddress, Workload
+  | project Timestamp, ReportId, AccountUpn, Url, NetworkMessageId, IPAddress, Workload, Latest

@@ -1,0 +1,40 @@
+id: 4eef1842-e4d8-5816-9622-25a4084dbc9f
+name: 'Windows security event logs (clients) - Obfuscation and download cradles in PowerShell script blocks'
+description: |
+  MITRE: Execution T1059.001, Defense Evasion T1027 and T1140. This catches what MDE can't: the script content itself. Source guide: endpoint/windows-security-events/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: WindowsForwardedEvents
+    dataTypes:
+      - Event
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+  - DefenseEvasion
+relevantTechniques:
+  - T1027
+  - T1059.001
+  - T1140
+query: |
+  // CUSTOM - Encoded or download-cradle patterns in 4104 script blocks
+  // ASSUMPTION: the PowerShell Operational channel is collected into Event via a custom DCR XPath.
+  // For PowerShell 7, also collect PowerShellCore and match EventLog == "PowerShellCore/Operational".
+  Event
+  | where TimeGenerated > ago(1h)
+  | where EventLog == "Microsoft-Windows-PowerShell/Operational"
+  | where EventID == 4104
+  | where RenderedDescription has_any ("FromBase64String", "downloadstring", "downloaddata",
+                                       "invoke-expression", "iex ", " -enc ", " -encodedcommand",
+                                       "hidden", "bypass")
+  | project TimeGenerated, Computer, RenderedDescription
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

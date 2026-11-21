@@ -1,0 +1,47 @@
+id: 984b449c-0531-5332-9e88-51363ce9d859
+name: 'Entra ID Protection (risk detections) - Risky service principal then sign-in or permission activity'
+description: |
+  MITRE: Valid Accounts T1078.004 and Steal or Forge Authentication Certificates, credential use against the flagged workload identity. Source guide: identity/entra-id-protection/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectoryIdentityProtection
+    dataTypes:
+      - AADRiskyServicePrincipals
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - AADServicePrincipalSignInLogs
+queryFrequency: 1d
+queryPeriod: 7d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1078.004
+query: |
+  // CUSTOM - Service principal flagged risky then authenticating or gaining permissions
+  // ASSUMPTION: AuditLogs TargetResources carries the service principal identifier for
+  // permission grants to apps. Inspect a sample row before relying on the join.
+  let risky_sp = AADRiskyServicePrincipals
+      | where TimeGenerated > ago(7d)
+      | where RiskState == "atRisk"
+      | summarize RiskSeen = max(TimeGenerated) by ServicePrincipalId = Id;
+  AADServicePrincipalSignInLogs
+  | where TimeGenerated > ago(7d)
+  | join kind=inner risky_sp on ServicePrincipalId
+  | where TimeGenerated > RiskSeen
+  | summarize SignIns = count(), FirstAfterRisk = min(TimeGenerated),
+              IPs = make_set(IPAddress, 10), Resources = make_set(ResourceDisplayName, 10)
+              by ServicePrincipalId, ServicePrincipalName
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: AadUserId
+        columnName: ServicePrincipalId
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: ServicePrincipalName
+version: 1.0.0
+kind: Scheduled

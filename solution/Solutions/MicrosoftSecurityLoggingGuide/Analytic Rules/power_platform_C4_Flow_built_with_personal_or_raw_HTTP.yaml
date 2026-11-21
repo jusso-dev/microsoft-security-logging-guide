@@ -1,0 +1,40 @@
+id: 0905e31b-e51d-5c11-823e-6b2bed77abbe
+name: 'Power Platform (Power Apps, Power Automate, Power Platform admin) - Flow built with personal or raw HTTP connectors'
+description: |
+  Catches flows that forward mail to Gmail or Outlook.com, copy files to Dropbox or POST data to an attacker endpoint. Your data policy should block most of these, so an alert indicates either a policy gap or an exempt environment. MITRE: Exfiltration T1567, T1048. Source guide: business-apps/power-platform/README.md (C4).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: PowerAutomate
+    dataTypes:
+      - PowerAutomateActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1048
+  - T1567
+query: |
+  // CUSTOM - Flow created or edited with consumer, file-share or raw HTTP connectors
+  // ASSUMPTION: FlowConnectorNames holds connector display names. Confirm with validation query 3 first.
+  let risky_connectors = dynamic(["Outlook.com", "Gmail", "Google Drive", "Dropbox", "HTTP", "FTP", "SFTP", "Telegram", "Slack"]);
+  PowerAutomateActivity
+  | where TimeGenerated > ago(1h)
+  | where EventOriginalType in ("CreateFlow", "EditFlow")
+  | where FlowConnectorNames has_any (risky_connectors)
+  | extend EnvironmentId = tostring(split(parse_url(FlowDetailsUrl).Path, "/")[2])
+  | project TimeGenerated, ActorName, EventOriginalType, FlowConnectorNames, FlowDetailsUrl, EnvironmentId, SrcIpAddr
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SrcIpAddr
+version: 1.0.0
+kind: Scheduled

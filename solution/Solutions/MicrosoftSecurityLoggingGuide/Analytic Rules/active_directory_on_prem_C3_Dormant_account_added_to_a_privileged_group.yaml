@@ -1,0 +1,50 @@
+id: ebfbbfd6-3d8d-5d94-be78-61760c9c5d23
+name: 'Active Directory Domain Services (on-premises) - Dormant account added to a privileged group'
+description: |
+  Attackers with domain admin rights often build persistence with a stale, trusted-looking account. Both the actor and the OOB group rules can miss it if the change looks routine. MITRE: Persistence T1098. Feed the tier 0 group list from a watchlist if yours differs. Source guide: identity/active-directory-on-prem/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1d
+queryPeriod: 14d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - account with no logon history for 30 days added to a Tier 0 group
+  let tier0_groups = dynamic(["Domain Admins", "Enterprise Admins", "Schema Admins", "Account Operators", "Administrators"]);
+  let recent_logons = SecurityEvent
+      | where TimeGenerated > ago(30d)
+      | where EventID == 4624
+      | summarize LastLogon = max(TimeGenerated) by TargetUserName;
+  SecurityEvent
+  | where TimeGenerated > ago(24h)
+  | where EventID in (4728, 4732, 4756)
+  // ASSUMPTION: for these events the group is in TargetAccount and the added member in MemberName.
+  // Validate with: SecurityEvent | where EventID == 4728 | take 5
+  | where TargetAccount has_any (tier0_groups)
+  | extend AddedAccount = tostring(split(MemberName, "\\")[-1])
+  | join kind=leftouter recent_logons on $left.AddedAccount == $right.TargetUserName
+  | where isempty(LastLogon) or LastLogon < ago(30d)
+  | project TimeGenerated, Computer, Actor = SubjectUserName, AddedAccount, TargetAccount, LastLogon
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: TargetAccount
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: AddedAccount
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

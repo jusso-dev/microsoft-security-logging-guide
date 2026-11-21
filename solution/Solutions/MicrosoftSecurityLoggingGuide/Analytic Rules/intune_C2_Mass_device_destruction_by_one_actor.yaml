@@ -1,0 +1,37 @@
+id: 263fca96-e0a6-523f-bcd9-a32e7467b3d6
+name: 'Intune - Mass device destruction by one actor'
+description: |
+  MITRE: Impact T1485. Source guide: endpoint/intune/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Intune
+    dataTypes:
+      - IntuneAuditLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Impact
+relevantTechniques:
+  - T1485
+query: |
+  // CUSTOM - Many wipe, retire or delete actions by one actor in an hour
+  // Tenant limits are 500 Wipe and 1,000 Retire or Delete actions per day, so bursts can be a
+  // legitimate device refresh. Alert above your baseline and always check the actor's sign-ins.
+  // ASSUMPTION: same OperationName values as C1.
+  IntuneAuditLogs
+  | where TimeGenerated > ago(1h)
+  | where OperationName has_any ("wipe", "retire", "delete")
+  | summarize Events = dcount(CorrelationId), FirstSeen = min(TimeGenerated)
+              by Actor = Identity, bin(TimeGenerated, 1h)
+  | where Events >= 10
+  | project FirstSeen, Actor, Events
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

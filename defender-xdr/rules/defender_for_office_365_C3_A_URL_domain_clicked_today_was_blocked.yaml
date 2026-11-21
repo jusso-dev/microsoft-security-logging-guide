@@ -1,0 +1,33 @@
+id: 0136587f-dadc-5920-a04e-fad3c76077f7
+displayName: 'Defender for Office 365 - A URL domain clicked today was blocked later'
+description: |
+  Catches the window between first contact and a verdict flip, which is where campaigns get users. Add a ThreatIntelligenceIndicator join if you want to keep it to known-bad domains. MITRE: Initial Access T1566.002. Source guide: email-collab/defender-for-office-365/README.md (C3).
+severity: Medium
+frequency: P1D
+lookbackPeriod: P3D
+sourceGuide: 'email-collab/defender-for-office-365/README.md'
+requiredTables:
+  - UrlClickEvents
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1566.002
+entityMappings:
+  - entityType: User
+    identifier: AccountUpn
+    columnName: SampleAccountUpn
+recommendedActions: |
+  Review all users who clicked the domain before Defender flipped its verdict to Blocked, and hunt for subsequent sign-ins or endpoint downloads.
+query: |
+  // Defender XDR custom detection: earlier allowed clicks on a URL domain Defender now blocks
+  UrlClickEvents
+  | where Timestamp > ago(3d)
+  | extend UrlDomain = tolower(parse_url(Url).Host)
+  | summarize Timestamp = max(Timestamp), ReportId = any(ReportId),
+              FirstClick = min(Timestamp), Users = dcount(AccountUpn),
+              SampleAccountUpn = any(AccountUpn),
+              Allowed = countif(ActionType == "ClickAllowed" or IsClickedThrough != 0),
+              Blocked = countif(ActionType == "Blocked")
+      by UrlDomain
+  | where Allowed > 0 and Blocked > 0
+  | project Timestamp, ReportId, UrlDomain, SampleAccountUpn, FirstClick, Users, Allowed, Blocked

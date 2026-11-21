@@ -1,0 +1,8 @@
+// HUNT - Events MDCA enrichment flagged as uncommon for the user
+// ASSUMPTION: per the schema doc, low-value events have an empty value and clean
+// high-value events have an empty list, so this filter keeps only genuine anomalies.
+CloudAppEvents
+| where Timestamp > ago(1d)
+| where isnotempty(UncommonForUser) and tostring(UncommonForUser) != "[]"
+| project Timestamp, AccountDisplayName, Application, ActionType, ObjectName, UncommonForUser
+| take 100

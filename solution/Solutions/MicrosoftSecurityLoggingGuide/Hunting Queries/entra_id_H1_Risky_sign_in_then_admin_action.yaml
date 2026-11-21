@@ -1,0 +1,29 @@
+id: 47786489-74eb-5029-82b9-619bd955a97b
+name: 'Entra ID (sign-in, audit and Graph activity logs) - Risky sign-in then admin action'
+description: |
+  - **Risky sign-in then admin action.** Join risk-flagged sign-ins to the next AuditLogs change by the same account. Needs Entra ID P2 for populated risk fields. Source guide: identity/entra-id/README.md.
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+      - AuditLogs
+tactics:
+  - Discovery
+query: |
+  let risky = SigninLogs
+      | where TimeGenerated > ago(1d)
+      | where RiskLevelDuringSignIn in ("medium", "high")
+      | summarize RiskySignIn = max(TimeGenerated) by UserPrincipalName = tolower(UserPrincipalName);
+  AuditLogs
+  | where TimeGenerated > ago(1d)
+  | extend Actor = tostring(InitiatedBy.user.userPrincipalName)
+  | extend UserPrincipalName = tolower(Actor)
+  | join kind=inner risky on UserPrincipalName
+  | where TimeGenerated > RiskySignIn
+  | project TimeGenerated, OperationName, Actor, RiskySignIn
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0

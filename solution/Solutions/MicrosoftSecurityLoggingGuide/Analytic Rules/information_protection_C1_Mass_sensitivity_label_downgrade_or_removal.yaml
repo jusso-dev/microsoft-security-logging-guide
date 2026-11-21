@@ -1,0 +1,47 @@
+id: 90ae6d8c-4b21-5b7a-bbb0-66d3e2dfbe7a
+name: 'Purview Information Protection - Mass sensitivity label downgrade or removal'
+description: |
+  Catches a user stripping or downgrading labels on multiple files in a short window, a common precursor to bypassing encryption or DLP rules. Run hourly in Sentinel with a 1-hour lookback. MITRE: Defense Evasion T1562 and Collection T1530. Source guide: data-security/information-protection/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftPurviewInformationProtection
+    dataTypes:
+      - MicrosoftPurviewInformationProtection
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+  - Collection
+relevantTechniques:
+  - T1530
+  - T1562
+query: |
+  // CUSTOM - Spike in sensitivity label downgrades or removals by one user
+  // ASSUMPTION: Pin exact LabelEventType values in your tenant first with:
+  //   MicrosoftPurviewInformationProtection | where TimeGenerated > ago(30d) | distinct LabelEventType, Operation
+  // Replace watched_labels with the GUIDs of your Highly Confidential / Restricted labels.
+  let watched_labels = dynamic([
+      "00000000-0000-0000-0000-000000000001",
+      "00000000-0000-0000-0000-000000000002"
+  ]);
+  MicrosoftPurviewInformationProtection
+  | where TimeGenerated > ago(1h)
+  | where LabelEventType has_any ("Downgrade", "Remove") or Operation has "Removed"
+  | where isnotempty(UserId)
+  | extend TouchedWatchedLabel = SensitivityLabelId in (watched_labels)
+  | summarize Events = count(), WatchedEvents = countif(TouchedWatchedLabel),
+              Operations = make_set(Operation, 5), Workloads = make_set(Workload, 5),
+              Apps = make_set(Application, 5)
+      by UserId
+  | where Events >= 10 or WatchedEvents >= 3
+  | order by Events desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+version: 1.0.0
+kind: Scheduled

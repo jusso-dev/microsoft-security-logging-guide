@@ -7,6 +7,9 @@ Run these in the Microsoft Defender portal under **Investigation & response > Ad
 - Tables set to **Data lake tier only** do not appear in Analytics workspace `union` queries; verify those in **Data lake exploration** or on the connector status graph.
 - Native Defender XDR tables (`Device*`, `Email*`, `Identity*`, `CloudAppEvents`, `EntraIdSignInEvents`, `BehaviorInfo`, `AgentsInfo`) only appear in Sentinel queries if you turned on raw event streaming. Otherwise, query them directly in Defender XDR advanced hunting.
 - For connector-level polling failures (`SentinelHealth`) and silent-source alerting, see [docs/sentinel-health.md](../../docs/sentinel-health.md).
+- To deploy these queries as a Sentinel workbook alongside all 122 analytic rule templates and 22 hunting queries, see the [Microsoft Sentinel solution package](../../solution/README.md) or click below:
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjusso-dev%2Fmicrosoft-security-logging-guide%2Fmain%2Fsolution%2FSolutions%2FMicrosoftSecurityLoggingGuide%2FPackage%2FmainTemplate.json)
 
 ## Master health check
 

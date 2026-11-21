@@ -1,0 +1,31 @@
+id: 25a2d449-35c3-5d9c-b598-e6063548900f
+displayName: 'Copilot Studio - Published Copilot Studio agent with weak authentication posture in Defender XDR'
+description: |
+  Run as a Defender XDR custom detection rule (daily) if you hold Microsoft Agent 365 licences. MITRE: Initial Access T1190. Source guide: business-apps/copilot-studio/README.md (C4).
+severity: Medium
+frequency: P1D
+lookbackPeriod: P1D
+sourceGuide: 'business-apps/copilot-studio/README.md'
+requiredTables:
+  - AgentsInfo
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1190
+entityMappings:
+  - entityType: CloudApplication
+    identifier: ApplicationId
+    columnName: AgentId
+recommendedActions: |
+  Verify with the agent owner whether unauthenticated access is intentional, enforce Entra ID authentication and review connected tools and permissions.
+query: |
+  // Defender XDR custom detection: active published Copilot Studio agents with weak authentication posture
+  // ASSUMPTION: inspect one AgentsInfo row to confirm Platform and authentication fields in your tenant.
+  AgentsInfo
+  | summarize arg_max(Timestamp, *) by AgentId
+  | where LifecycleStatus == "Active" and PublishedStatus == "Published"
+  | where Platform has "Copilot Studio"
+  | where tostring(ToolsAuthenticationType) has_any ("None", "NoAuthentication", "Anonymous")
+      or tostring(RawAgentInfo) has_any ("NoAuthentication", "Anonymous")
+  | extend ReportId = tostring(AgentId)
+  | project Timestamp, ReportId, AgentId, AgentName, Platform, EntraAgentId, ToolsAuthenticationType, Permissions

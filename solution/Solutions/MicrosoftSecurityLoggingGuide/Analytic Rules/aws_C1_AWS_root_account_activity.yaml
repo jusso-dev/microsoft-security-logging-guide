@@ -1,0 +1,35 @@
+id: 0ffeba4f-b814-551b-b755-b264fa609a3d
+name: 'Amazon Web Services (optional) - AWS root account activity'
+description: |
+  MITRE: Privilege Escalation and Initial Access T1078.004 (Valid Accounts: Cloud Accounts). Root should only ever be used for break-glass tasks. Source guide: multi-cloud/aws/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AWS
+    dataTypes:
+      - AWSCloudTrail
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - PrivilegeEscalation
+relevantTechniques:
+  - T1078.004
+query: |
+  // CUSTOM - Any API call or console sign-in performed by the AWS root user
+  // ASSUMPTION: AWSCloudTrail populates UserIdentityType == "Root" for root account actions.
+  AWSCloudTrail
+  | where TimeGenerated > ago(1h)
+  | where UserIdentityType == "Root"
+  | where EventType != "AwsServiceEvent"
+  | project TimeGenerated, RecipientAccountId, AWSRegion, EventSource, EventName,
+            SourceIpAddress, UserAgent, ErrorCode
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIpAddress
+version: 1.0.0
+kind: Scheduled

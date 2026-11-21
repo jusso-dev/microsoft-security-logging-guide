@@ -1,0 +1,18 @@
+id: de7c673f-4ce4-5ad6-8b62-9a9c0cfdb8e9
+name: 'Defender for Cloud - Regulatory compliance controls that regressed to Failed in the last 7 days'
+description: |
+  - **Compliance drift by standard.** Group SecurityRegulatoryCompliance by ComplianceStandard and State over 30 days to spot controls moving from Passed to Failed. Source guide: azure/defender-for-cloud/README.md.
+requiredDataConnectors:
+  - connectorId: AzureSecurityCenter
+    dataTypes:
+      - SecurityRegulatoryCompliance
+tactics:
+  - Discovery
+query: |
+  // Hunt: Regulatory compliance controls that regressed to Failed in the last 7 days
+  SecurityRegulatoryCompliance
+  | where TimeGenerated > ago(7d)
+  | summarize arg_max(TimeGenerated, State, FailedResources) by ComplianceStandard, ComplianceControl
+  | where State =~ "Failed" and FailedResources > 0
+  | order by FailedResources desc
+version: 1.0.0

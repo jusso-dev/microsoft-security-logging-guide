@@ -1,0 +1,23 @@
+id: bd889d40-fde5-5887-b39c-b142a5fe0809
+name: 'Azure App Service and Azure Functions - Recommended hunt: IP restriction denials spike'
+description: |
+  - **Recommended hunt: IP restriction denials spike.** Hunt AppServiceIPSecAuditLogs for IPs repeatedly denied by access restrictions (scanning or attempting to reach private/internal web apps): Source guide: azure/app-service-functions/README.md.
+requiredDataConnectors:
+  - connectorId: AzureAppService
+    dataTypes:
+      - AppServiceIPSecAuditLogs
+tactics:
+  - Discovery
+query: |
+  AppServiceIPSecAuditLogs
+  | where TimeGenerated > ago(7d)
+  | where Result =~ "Denied"
+  | summarize DeniedCount = count(), Hosts = make_set(CsHost, 10) by CIp, _ResourceId
+  | where DeniedCount >= 50
+  | order by DeniedCount desc
+entityMappings:
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: _ResourceId
+version: 1.0.0

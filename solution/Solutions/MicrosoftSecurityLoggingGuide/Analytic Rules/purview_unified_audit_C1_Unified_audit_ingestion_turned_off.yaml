@@ -1,0 +1,44 @@
+id: 51f113e6-b5d8-5c0a-827d-06737e64adbd
+name: 'Purview unified audit log - Unified audit ingestion turned off'
+description: |
+  Microsoft documents that turning auditing on or off is itself audited, and that Search-UnifiedAuditLog -Operations Set-AdminAuditLogConfig finds the record (turn auditing on or off). Pair this rule with the freshness query in Validation KQL. MITRE: Defense Evasion T1562. Source guide: email-collab/purview-unified-audit/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562
+query: |
+  // CUSTOM - Someone turned off unified audit logging for the tenant.
+  // The OOB "Exchange AuditLog Disabled" rule only watches AdminAuditLogEnabled.
+  // This watches the switch that kills every Microsoft 365 feed into Sentinel.
+  // ASSUMPTION: the Set-AdminAuditLogConfig record still reaches Sentinel after
+  // ingestion is disabled. Microsoft states that audit status changes are audited
+  // and searchable (see audit-log-enable-disable), but treat total silence in
+  // OfficeActivity as the stronger signal either way.
+  OfficeActivity
+  | where TimeGenerated > ago(24h)
+  | where Operation =~ "Set-AdminAuditLogConfig"
+  | mv-expand P = todynamic(Parameters)
+  | where tostring(P.Name) =~ "UnifiedAuditLogIngestionEnabled"
+  | where tostring(P.Value) =~ "False"
+  | project TimeGenerated, UserId, ClientIP, Operation, ParameterValue = tostring(P.Value)
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,37 @@
+id: e3bf4250-328e-5232-afdb-dd4aa24e6501
+name: 'Windows Server - New service or scheduled task installed on a server from a non-standard path'
+description: |
+  MITRE: Persistence T1543.003 (Create or Modify System Process: Windows Service). Source guide: servers/windows-server/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1543.003
+query: |
+  // CUSTOM - Windows service installed on a server pointing to Temp, Users or ProgramData
+  // ASSUMPTION: Event 7045 is collected into SecurityEvent (included in Minimal and Common sets).
+  SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID == 7045
+  | where ServiceFileName has_any ("\\Temp\\", "\\Users\\", "\\ProgramData\\", "powershell", "cmd.exe", "mshta")
+  | project TimeGenerated, Computer, SubjectUserName, ServiceName, ServiceFileName, ServiceStartType
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: SubjectUserName
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

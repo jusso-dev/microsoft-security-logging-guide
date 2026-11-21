@@ -1,0 +1,38 @@
+id: 40153008-525b-5d55-b179-938fd425661f
+name: 'Windows Server - Potential IIS web shell execution in writable paths'
+description: |
+  MITRE: Persistence T1505.003 (Server Software Component: Web Shell). Source guide: servers/windows-server/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureMonitorWindowsAgent
+    dataTypes:
+      - W3CIISLog
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+  - Persistence
+relevantTechniques:
+  - T1505.003
+query: |
+  // CUSTOM - POST requests to executable scripts inside upload, temp or content folders
+  // ASSUMPTION: W3CIISLog is in Analytics tier, and IIS logs include csMethod, csUriStem, scStatus and cIP.
+  // Tune excluded paths for legitimate application upload handlers.
+  W3CIISLog
+  | where TimeGenerated > ago(1h)
+  | where csMethod == "POST" and scStatus between (200 .. 299)
+  | where csUriStem matches regex @"(?i)/(uploads|upload|temp|tmp|images|content|public|aspnet_client)/.*\.(aspx|ashx|asmx|asp|php|jsp)$"
+  | summarize Hits = count(), DistinctIPs = dcount(cIP), SampleIPs = make_set(cIP, 5),
+              UserAgents = make_set(csUserAgent, 5)
+              by Computer, sSiteName, csUriStem
+  | project Computer, sSiteName, csUriStem, Hits, DistinctIPs, SampleIPs, UserAgents
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,38 @@
+id: dd7fb007-1f5f-5d2f-8d5d-8cf25a5e29d8
+name: 'Intune - Remote wipe, retire or delete'
+description: |
+  A wipe factory resets the device. A retire removes company data and unenrols the device, which strips the management agent and any policy enforcement. Both are Help Desk Operator permissions, so any compromised help desk account can run them (Microsoft Learn). MITRE: Impact T1485 for wipe, Defense Evasion T1562.001 for retire, because it removes the management agent. Source guide: endpoint/intune/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Intune
+    dataTypes:
+      - IntuneAuditLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+  - Impact
+relevantTechniques:
+  - T1485
+  - T1562.001
+query: |
+  // CUSTOM - Wipe, Retire or Delete device action
+  // ASSUMPTION: OperationName matches the friendly action names shown in the Intune admin centre,
+  // such as Wipe, Retire and Delete. Pin the exact strings with validation query 2 before enabling.
+  // ASSUMPTION: CorrelationId is unique per audit event. The summarize deduplicates the export's known duplicate rows.
+  IntuneAuditLogs
+  | where TimeGenerated > ago(1h)
+  | where OperationName has_any ("wipe", "retire", "delete")
+  | summarize FirstSeen = min(TimeGenerated), Sample = any(Properties)
+              by OperationName, Actor = Identity, CorrelationId
+  | project FirstSeen, OperationName, Actor, CorrelationId, Sample
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

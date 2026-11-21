@@ -1,0 +1,29 @@
+id: dd832713-9f55-51ef-a9f0-1349b294adce
+name: 'Azure Activity (control plane) - Callers generating high volumes of failed ARM operations (reconnaissance)'
+description: |
+  - **Failed ARM operations burst.** Hunt for callers hitting repeated AuthorizationFailed errors across multiple subscriptions, which often signals post-compromise Azure enumeration. Source guide: azure/azure-activity/README.md.
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity
+tactics:
+  - Reconnaissance
+query: |
+  // Hunt: Callers generating high volumes of failed ARM operations (reconnaissance)
+  AzureActivity
+  | where TimeGenerated > ago(1d)
+  | where ActivityStatusValue =~ "Failed"
+  | summarize FailedOps = count(), DistinctOps = dcount(OperationNameValue),
+              SampleOps = make_set(OperationNameValue, 10) by Caller, CallerIpAddress
+  | where FailedOps >= 25 and DistinctOps >= 5
+  | order by FailedOps desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Caller
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+version: 1.0.0

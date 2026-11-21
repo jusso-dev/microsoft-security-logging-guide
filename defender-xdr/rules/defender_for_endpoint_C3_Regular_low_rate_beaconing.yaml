@@ -1,0 +1,34 @@
+id: c0f956e8-a755-5cf5-aa6b-16e168c74e69
+displayName: 'Defender for Endpoint - Regular low-rate beaconing'
+description: |
+  MITRE: Command and Control T1071, T1571. At least 20 mostly-quiet 10-minute bins in a day means something is keeping a schedule. Source guide: endpoint/defender-for-endpoint/README.md (C3).
+severity: Medium
+frequency: P1D
+lookbackPeriod: P1D
+sourceGuide: 'endpoint/defender-for-endpoint/README.md'
+requiredTables:
+  - DeviceNetworkEvents
+tactics:
+  - CommandAndControl
+relevantTechniques:
+  - T1071
+  - T1571
+entityMappings:
+  - entityType: Device
+    identifier: DeviceId
+    columnName: DeviceId
+recommendedActions: |
+  Inspect the initiating process binary and destination IP reputation; exclude benign telemetry or monitoring agents after baselining.
+query: |
+  // Defender XDR custom detection: steady low-rate outbound connections typical of C2 beaconing
+  // ASSUMPTION: thresholds are a starting point. Tune against a week of your own traffic.
+  DeviceNetworkEvents
+  | where Timestamp > ago(24h)
+  | where RemoteIPType == "Public"
+  | summarize Attempts = count(), LatestTs = max(Timestamp), SampleReportId = any(ReportId)
+      by DeviceId, DeviceName, InitiatingProcessFileName, RemoteIP, bin(Timestamp, 10m)
+  | summarize QuietBins = countif(Attempts between (1 .. 5)), Total = sum(Attempts),
+              Timestamp = max(LatestTs), ReportId = any(SampleReportId)
+      by DeviceId, DeviceName, InitiatingProcessFileName, RemoteIP
+  | where QuietBins >= 20
+  | project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessFileName, RemoteIP, Total, QuietBins

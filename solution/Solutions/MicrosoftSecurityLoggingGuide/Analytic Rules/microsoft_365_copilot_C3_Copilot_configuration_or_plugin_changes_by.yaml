@@ -1,0 +1,42 @@
+id: b5a42755-c9ac-5ca8-8196-b87c8b4d02ba
+name: '365 Copilot - Copilot configuration or plugin changes by non-approved actors'
+description: |
+  MITRE ATT&CK: Persistence T1098 (Account Manipulation) and Defense Evasion T1562. Source guide: ai/microsoft-365-copilot/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftCopilot
+    dataTypes:
+      - CopilotActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - DefenseEvasion
+relevantTechniques:
+  - T1098
+  - T1562
+query: |
+  // CUSTOM - Copilot settings or plugin lifecycle changes outside the approved admin list
+  // ASSUMPTION: RecordType or Operation values include CopilotSettings/Plugin actions.
+  // Verify exact strings in your tenant with:
+  //   CopilotActivity | where TimeGenerated > ago(30d) | distinct RecordType
+  let approved_admins = dynamic(["ai-admin@yourdomain.gov.au"]);
+  CopilotActivity
+  | where TimeGenerated > ago(1h)
+  | where RecordType != "CopilotInteraction"
+  | where ActorName !in~ (approved_admins)
+  | project TimeGenerated, RecordType, Workload, ActorName, ActorUserType, AppHost, SrcIpAddr, LLMEventData
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SrcIpAddr
+version: 1.0.0
+kind: Scheduled

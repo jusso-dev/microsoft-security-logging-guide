@@ -1,0 +1,28 @@
+id: 14537225-cd0f-53de-8b8f-fa8372fd88b0
+name: 'Azure DevOps - PATs used from 3 or more distinct IPs inside 24 hours'
+description: |
+  - **PAT authentication from multiple IPs or unusual user agents.** Spot shared or leaked developer PATs being replayed from outside corporate egress ranges. Source guide: devops/azure-devops/README.md.
+requiredDataConnectors:
+  - connectorId: AzureDevOpsAuditing
+    dataTypes:
+      - AzureDevOpsAuditing
+tactics:
+  - Discovery
+query: |
+  // Hunt: PATs used from 3 or more distinct IPs inside 24 hours
+  AzureDevOpsAuditing
+  | where TimeGenerated > ago(1d)
+  | where AuthenticationMechanism has "PAT"
+  | summarize DistinctIPs = dcount(IpAddress),
+              IPs = make_set(IpAddress, 10),
+              UserAgents = make_set(UserAgent, 5),
+              Operations = make_set(OperationName, 10)
+              by ActorUPN
+  | where DistinctIPs >= 3
+  | order by DistinctIPs desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorUPN
+version: 1.0.0

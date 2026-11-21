@@ -1,0 +1,43 @@
+id: 4863389f-e322-57f0-9e3c-80703446ee15
+name: 'Teams - New app, bot or connector installed'
+description: |
+  Apps and connectors can read chat content and post messages, so an unapproved install is persistence as well as productivity. Admin installs show under TeamsAdminAction too. MITRE: Persistence T1098, Collection T1213. Source guide: email-collab/teams/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - Collection
+relevantTechniques:
+  - T1098
+  - T1213
+query: |
+  // CUSTOM - App or bot installed or published, with an approved list
+  // ASSUMPTION: Your approved app list. Feed it from a watchlist.
+  let approved_apps = dynamic(["Microsoft Planner", "Microsoft Lists", "Approval"]);
+  let app_ops = dynamic(["AppInstalled", "AppPublishedToCatalog", "BotAddedToTeam", "ConnectorAdded"]);
+  OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where OfficeWorkload =~ "MicrosoftTeams"
+  | where Operation in (app_ops)
+  | extend Target = coalesce(tostring(ItemName), tostring(AddonName), "")
+  | where Target !in~ (approved_apps)
+  | project TimeGenerated, Operation, UserId, Target, TeamName, ClientIP
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

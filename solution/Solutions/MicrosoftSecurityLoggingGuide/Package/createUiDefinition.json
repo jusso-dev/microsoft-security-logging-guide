@@ -1,0 +1,118 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "isWizard": false,
+      "basics": {
+        "description": "Deploys the **Microsoft Security Logging Guide** Microsoft Sentinel Content Hub V3 solution into an existing Sentinel-enabled Log Analytics workspace.\n\n**Analytic Rules:** 122, **Hunting Queries:** 22, **Workbooks:** 2\n\n[View guide and source KQL](https://github.com/jusso-dev/microsoft-security-logging-guide)",
+        "subscription": {
+          "resourceProviders": [
+            "Microsoft.OperationsManagement/solutions",
+            "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "Microsoft.Insights/workbooks"
+          ]
+        },
+        "location": {
+          "metadata": {
+            "hidden": "Location is derived from the selected Log Analytics workspace."
+          },
+          "visible": false
+        },
+        "resourceGroup": {
+          "allowExisting": true
+        }
+      }
+    },
+    "basics": [
+      {
+        "name": "getLAWorkspace",
+        "type": "Microsoft.Solutions.ArmApiControl",
+        "toolTip": "Lists Log Analytics workspaces in the selected resource group.",
+        "condition": "[greater(length(resourceGroup().name),0)]",
+        "request": {
+          "method": "GET",
+          "path": "[concat(subscription().id,'/providers/Microsoft.OperationalInsights/workspaces?api-version=2020-08-01')]"
+        }
+      },
+      {
+        "name": "workspace",
+        "type": "Microsoft.Common.DropDown",
+        "label": "Workspace",
+        "placeholder": "Select a Log Analytics workspace",
+        "toolTip": "Select the Log Analytics workspace where Microsoft Sentinel is enabled.",
+        "constraints": {
+          "allowedValues": "[map(filter(basics('getLAWorkspace').value, (filter) => contains(toLower(filter.id), toLower(resourceGroup().name))), (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
+          "required": true
+        },
+        "visible": true
+      }
+    ],
+    "steps": [
+      {
+        "name": "contentSelection",
+        "label": "Content selection",
+        "elements": [
+          {
+            "name": "DeployAnalyticsRule",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Deploy Analytic Rule templates (122)",
+            "defaultValue": true,
+            "toolTip": "Installs all custom detection rule templates into Microsoft Sentinel Analytics Rule Templates (disabled by default until you enable and tune them)."
+          },
+          {
+            "name": "DeployHuntingQuery",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Deploy Hunting Queries (22)",
+            "defaultValue": true,
+            "toolTip": "Installs hunting queries from the product guides and operational packs."
+          },
+          {
+            "name": "DeployWorkbook",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Deploy Workbooks (2)",
+            "defaultValue": true,
+            "toolTip": "Installs the Ingestion Health and Cost Estimation workbook templates."
+          }
+        ]
+      },
+      {
+        "name": "workbooks",
+        "label": "Workbooks",
+        "elements": [
+          {
+            "name": "workbook1-name",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Ingestion Health workbook name",
+            "defaultValue": "Microsoft Security Logging Guide - Ingestion Health and Table Freshness",
+            "toolTip": "Display name for the Ingestion Health and Table Freshness workbook.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "workbook2-name",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Cost Estimation workbook name",
+            "defaultValue": "Microsoft Security Logging Guide - Cost Estimation and Volume Monitoring",
+            "toolTip": "Display name for the Cost Estimation and Volume Monitoring workbook.",
+            "constraints": {
+              "required": true
+            }
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "workspace": "[basics('workspace')]",
+      "workspace-location": "[first(map(filter(basics('getLAWorkspace').value, (filter) => and(contains(toLower(filter.id), toLower(resourceGroup().name)), equals(filter.name, basics('workspace')))), (item) => item.location))]",
+      "location": "[location()]",
+      "workbook1-name": "[steps('workbooks').'workbook1-name']",
+      "workbook2-name": "[steps('workbooks').'workbook2-name']",
+      "DeployAnalyticsRule": "[steps('contentSelection').DeployAnalyticsRule]",
+      "DeployHuntingQuery": "[steps('contentSelection').DeployHuntingQuery]",
+      "DeployWorkbook": "[steps('contentSelection').DeployWorkbook]"
+    }
+  }
+}

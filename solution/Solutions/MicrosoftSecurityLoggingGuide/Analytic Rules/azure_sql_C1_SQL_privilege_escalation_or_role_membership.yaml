@@ -1,0 +1,48 @@
+id: eb562b47-b1b9-5f49-915d-aab6db74f3ca
+name: 'Azure SQL Database and Managed Instance - SQL privilege escalation or role membership change'
+description: |
+  Out-of-box stateful anomaly rules focus on row volumes and destructive keywords, not direct permission grants. This rule catches principals granted high database privileges or added to privileged roles. MITRE: Privilege Escalation and Persistence, Account Manipulation T1098. Source guide: azure/azure-sql/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureDiagnostics
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - PrivilegeEscalation
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - Privilege or role membership changes in Azure SQL audit logs
+  // ASSUMPTION: Default BATCH_COMPLETED_GROUP or DATABASE_ROLE_MEMBER_CHANGE_GROUP / DATABASE_PERMISSION_CHANGE_GROUP is enabled.
+  // Pin exact action_name_s values in your workspace before enabling.
+  let approved_principals = dynamic(["cicd-deploy-spn", "sql-admin@yourdomain.gov.au"]);
+  AzureDiagnostics
+  | where TimeGenerated > ago(1h)
+  | where Category == "SQLSecurityAuditEvents"
+  | where succeeded_s =~ "true"
+  | where action_name_s in ("ADD MEMBER", "GRANT", "ALTER ROLE", "CREATE USER", "ALTER USER")
+      or statement_s has_any ("sp_addrolemember", "ALTER ROLE", "GRANT CONTROL", "GRANT IMPERSONATE", "db_owner")
+  | where server_principal_name_s !in~ (approved_principals)
+  | project TimeGenerated, LogicalServerName_s, database_name_s, server_principal_name_s,
+            client_ip_s, action_name_s, statement_s
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: server_principal_name_s
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: LogicalServerName_s
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: client_ip_s
+version: 1.0.0
+kind: Scheduled

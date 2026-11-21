@@ -1,0 +1,37 @@
+id: 35ff3696-7678-5d7d-a298-620821e9aa68
+name: 'Azure networking (VNet flow logs, Azure Firewall, WAF, DNS and DDoS) - Repeated DNS threat-intel blocks or alerts from a sing...'
+description: |
+  Identifies a potentially compromised VM or container repeatedly trying to resolve malicious domains caught by an Azure DNS resolver policy. MITRE: Command and Control, Application Layer Protocol (DNS) T1071.004. Source guide: azure/network-nsg-flow-firewall/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureDNS
+    dataTypes:
+      - DNSQueryLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CommandAndControl
+relevantTechniques:
+  - T1071.004
+query: |
+  // CUSTOM - Internal host repeatedly hitting Block or Alert rules in Azure DNS security policy
+  // ASSUMPTION: DNSQueryLogs is in Analytics, or run as a Data lake summary job.
+  // Verify exact ResolverPolicyRuleAction casing ("Block", "Alert") in your workspace.
+  DNSQueryLogs
+  | where TimeGenerated > ago(1h)
+  | where ResolverPolicyRuleAction in~ ("Block", "Alert")
+  | summarize Hits = count(), DistinctDomains = dcount(QueryName),
+              SampleDomains = make_set(QueryName, 10)
+      by SourceIpAddress, ResolverPolicyRuleAction, ResolverPolicyId
+  | where Hits >= 5
+  | order by Hits desc
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIpAddress
+version: 1.0.0
+kind: Scheduled

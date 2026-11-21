@@ -1,0 +1,22 @@
+{
+  "publisherId": "jusso-dev",
+  "offerId": "microsoft-security-logging-guide",
+  "firstPublishDate": "2026-11-21",
+  "providers": [
+    "Microsoft",
+    "Community"
+  ],
+  "categories": {
+    "domains": [
+      "Security - Threat Protection",
+      "Security - SIEM",
+      "Identity"
+    ]
+  },
+  "support": {
+    "name": "jusso-dev",
+    "tier": "Community",
+    "link": "https://github.com/jusso-dev/microsoft-security-logging-guide/issues"
+  },
+  "version": "3.0.0"
+}

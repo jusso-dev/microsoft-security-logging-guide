@@ -1,0 +1,5 @@
+AgentsInfo
+| summarize arg_max(Timestamp, *) by AgentId
+| where LifecycleStatus != "Deleted"
+| summarize Agents = count(), Published = countif(PublishedStatus == "Published") by Platform
+| order by Agents desc

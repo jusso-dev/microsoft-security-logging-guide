@@ -1,0 +1,44 @@
+id: 47bb31fd-cbb6-5786-9fb1-a212e7863858
+name: 'Power Platform (Power Apps, Power Automate, Power Platform admin) - Risky sign-in then flow created or edited'
+description: |
+  Catches a compromised account being used to build a mail-forwarding or data-exfiltration flow. MITRE: Initial Access T1078, Exfiltration T1567. Source guide: business-apps/power-platform/README.md (C8).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+  - connectorId: PowerAutomate
+    dataTypes:
+      - PowerAutomateActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - Exfiltration
+relevantTechniques:
+  - T1078
+  - T1567
+query: |
+  // CUSTOM - Risky sign-in followed by flow creation or edit (compromised maker building an exfil path)
+  // ASSUMPTION: requires Microsoft Entra ID P2 for populated RiskLevelDuringSignIn and RiskState fields.
+  let risky = SigninLogs
+      | where TimeGenerated > ago(1d)
+      | where RiskLevelDuringSignIn in ("medium", "high") or RiskState == "atRisk"
+      | summarize RiskySignIn = max(TimeGenerated) by UserPrincipalName = tolower(UserPrincipalName);
+  PowerAutomateActivity
+  | where TimeGenerated > ago(1h)
+  | where EventOriginalType in ("CreateFlow", "EditFlow")
+  | extend UserPrincipalName = tolower(ActorName)
+  | join kind=inner risky on UserPrincipalName
+  | where TimeGenerated > RiskySignIn
+  | project TimeGenerated, ActorName, EventOriginalType, FlowConnectorNames, FlowDetailsUrl, RiskySignIn
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+version: 1.0.0
+kind: Scheduled

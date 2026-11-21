@@ -1,0 +1,41 @@
+id: 8e41451d-af27-5005-be8b-2d7518f493d1
+name: 'Defender for Cloud Apps - Mass delete in a non-Microsoft SaaS app'
+description: |
+  MITRE: Impact T1485. Source guide: cloud-apps/defender-for-cloud-apps/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - CloudAppEvents
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Impact
+relevantTechniques:
+  - T1485
+query: |
+  // CUSTOM - Burst of delete events by one account in an hour, excluding Microsoft 365 workloads
+  // Rationale: the built-in Unusual file deletion activities covers M365 per-user anomalies, so
+  // this rule exists for connected non-Microsoft apps where the baseline coverage is thinner.
+  // ASSUMPTION: Delete ActionType values differ per app connector, and the excluded app list
+  // below is a placeholder. Pin exact Application strings with validation query 3 before enabling.
+  let hourly_deletes = 100;
+  let m365_apps = dynamic(["Microsoft SharePoint Online", "Microsoft OneDrive for Business", "Microsoft Office 365"]);
+  CloudAppEvents
+  | where TimeGenerated > ago(1h)
+  | where ActionType has_cs "elete" or ActivityType has_cs "elete"
+  | where Application !in (m365_apps)
+  | summarize Deletes = count(), Objects = dcount(ObjectId), Apps = make_set(Application, 5)
+      by AccountObjectId, bin(TimeGenerated, 1h)
+  | where Deletes > hourly_deletes
+  | project TimeGenerated, AccountObjectId, Deletes, Objects, Apps
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: AadUserId
+        columnName: AccountObjectId
+version: 1.0.0
+kind: Scheduled

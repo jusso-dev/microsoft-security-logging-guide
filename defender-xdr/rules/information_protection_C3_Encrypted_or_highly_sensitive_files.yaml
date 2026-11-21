@@ -1,0 +1,38 @@
+id: e37ea0b3-f8ae-582a-a9fe-114170e32230
+displayName: 'Purview Information Protection - Encrypted or highly sensitive files staged on endpoints'
+description: |
+  Defender XDR advanced hunting custom detection using DeviceFileEvents, where SensitivityLabel and IsAzureInfoProtectionApplied are already resolved to plain text. MITRE: Collection T1074 (Data Staged) and Exfiltration T1052. Source guide: data-security/information-protection/README.md (C3).
+severity: Medium
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'data-security/information-protection/README.md'
+requiredTables:
+  - DeviceFileEvents
+tactics:
+  - Collection
+  - Exfiltration
+relevantTechniques:
+  - T1052
+  - T1074
+entityMappings:
+  - entityType: Device
+    identifier: DeviceId
+    columnName: DeviceId
+  - entityType: User
+    identifier: AccountUpn
+    columnName: InitiatingProcessAccountUpn
+recommendedActions: |
+  Review the staged files and destination media or network share, and coordinate with the data owner and Purview compliance team.
+query: |
+  // Defender XDR custom detection: labelled or encrypted files copied to staging or removable paths
+  // ASSUMPTION: replace "Highly Confidential" with your organisation's top sensitivity label display name.
+  DeviceFileEvents
+  | where Timestamp > ago(1h)
+  | where SensitivityLabel has "Highly Confidential" or IsAzureInfoProtectionApplied == true
+  | where ActionType in ("FileCreated", "FileRenamed")
+  | where FolderPath matches regex @"(?i)^([d-z]:\\|\\\\.*\\|.*\\(temp|public|downloads|staging)\\)"
+  | summarize FileCount = count(), SampleFiles = make_set(FileName, 10),
+              Timestamp = max(Timestamp), ReportId = any(ReportId)
+      by DeviceId, DeviceName, InitiatingProcessAccountUpn, SensitivityLabel
+  | where FileCount >= 10
+  | project Timestamp, ReportId, DeviceId, DeviceName, InitiatingProcessAccountUpn, SensitivityLabel, FileCount, SampleFiles

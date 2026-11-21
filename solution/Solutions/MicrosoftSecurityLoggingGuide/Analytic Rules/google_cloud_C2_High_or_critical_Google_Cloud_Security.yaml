@@ -1,0 +1,31 @@
+id: 320ca56c-7cd4-548b-a8c6-bd7cc646e65b
+name: 'Google Cloud (optional) - High or critical Google Cloud Security Command Center finding'
+description: |
+  MITRE: Varies by SCC finding category. Source guide: multi-cloud/google-cloud/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: GoogleCloudSCC
+    dataTypes:
+      - GoogleCloudSCC
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Discovery
+query: |
+  // CUSTOM - Surfaces HIGH and CRITICAL Security Command Center findings as Sentinel alerts
+  // ASSUMPTION: GoogleCloudSCC populates FindingSeverity, FindingCategory and ResourceName.
+  // Confirm exact column casing with "GoogleCloudSCC | take 5" before enabling.
+  GoogleCloudSCC
+  | where TimeGenerated > ago(1h)
+  | where FindingSeverity in~ ("HIGH", "CRITICAL")
+  | project TimeGenerated, FindingSeverity, FindingCategory, ResourceName, State
+entityMappings:
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: ResourceName
+version: 1.0.0
+kind: Scheduled

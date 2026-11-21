@@ -1,0 +1,32 @@
+id: e616e41b-0cb1-5ea2-8cc0-255b2fd25855
+displayName: 'Defender for Office 365 - ZAP or manual remediation failed on delivered mail'
+description: |
+  A failure here means a message the service judged malicious may still be sitting in a mailbox. Join to EmailEvents on NetworkMessageId for the delivery details and to check the latest delivery location. MITRE: Defense Evasion T1562. Source guide: email-collab/defender-for-office-365/README.md (C1).
+severity: High
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'email-collab/defender-for-office-365/README.md'
+requiredTables:
+  - EmailPostDeliveryEvents
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562
+entityMappings:
+  - entityType: Mailbox
+    identifier: RecipientEmailAddress
+    columnName: RecipientEmailAddress
+  - entityType: MailMessage
+    identifier: NetworkMessageId
+    columnName: NetworkMessageId
+recommendedActions: |
+  Check whether the malicious message remains in the recipient mailbox, hard-delete it manually via Threat Explorer, and check for clicks or replies.
+query: |
+  // Defender XDR custom detection: ZAP or manual post-delivery remediation failed on delivered mail
+  // ASSUMPTION: pin ActionResult values against your tenant first via distinct ActionType, ActionResult.
+  EmailPostDeliveryEvents
+  | where Timestamp > ago(1h)
+  | where ActionType in ("Phish ZAP", "Malware ZAP", "Manual remediation")
+  | where tostring(ActionResult) !~ "Success"
+  | project Timestamp, ReportId, NetworkMessageId, RecipientEmailAddress, SenderFromAddress,
+            ActionType, ActionTrigger, ActionResult, DeliveryLocation, ThreatTypes

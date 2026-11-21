@@ -1,0 +1,41 @@
+id: c9f4b719-5493-502e-a71a-f1543b5b5af6
+name: 'Copilot Studio - Copilot Studio agent created or switched to no authentication'
+description: |
+  Because Copilot Studio maker audit events (BotCreate, BotUpdateOperation-BotAuthUpdate) don't have a documented Sentinel table, watching the Dataverse bot table is the dependable detection path. Block the no-auth connector in a data policy and treat this rule as a backstop. MITRE: Initial Access T1190. Source guide: business-apps/copilot-studio/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Dataverse
+    dataTypes:
+      - DataverseActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1190
+query: |
+  // CUSTOM - Copilot Studio agent created or switched to "No authentication"
+  // ASSUMPTION: auditing is enabled on the Dataverse 'bot' table in agent environments,
+  // and authenticationmode 1 = No authentication. Confirm option values with validation query 3.
+  DataverseActivity
+  | where TimeGenerated > ago(1h)
+  | where EntityName == "bot" and Message in ("Create", "Update")
+  | mv-expand Field = Fields
+  | where tostring(Field.Name) == "authenticationmode"
+  | extend AuthMode = tostring(Field.Value)
+  | where AuthMode == "1"
+  | project TimeGenerated, UserId, ClientIp, InstanceUrl, BotId = EntityId, AuthMode
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIp
+version: 1.0.0
+kind: Scheduled

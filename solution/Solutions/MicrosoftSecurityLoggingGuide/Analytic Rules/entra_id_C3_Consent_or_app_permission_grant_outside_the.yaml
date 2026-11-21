@@ -1,0 +1,42 @@
+id: 7ac49c54-ab39-5f23-80d7-53cc89a293b2
+name: 'Entra ID (sign-in, audit and Graph activity logs) - Consent or app permission grant outside the approved list'
+description: |
+  Microsoft's Rare application consent rule describes Consent to application, Add service principal and Add OAuth2PermissionGrant as typically rare events. This adds an allow list of who may consent at all. Feed approved_admins from a watchlist of PIM-eligible Identity Administrators. MITRE: Persistence T1098 and T1528, steal or forge app access tokens. Source guide: identity/entra-id/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - AuditLogs
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - CredentialAccess
+relevantTechniques:
+  - T1098
+  - T1528
+query: |
+  // CUSTOM - OAuth consent or grant by someone outside the approved admin list
+  // The extraction pattern mirrors Microsoft's own consent rules: user UPN if present, app name otherwise.
+  // ASSUMPTION: OperationName values. Pin exact strings first:
+  //   AuditLogs | where TimeGenerated > ago(30d)
+  //   | where OperationName has "consent" or OperationName has "OAuth2" or OperationName has "service principal"
+  //   | distinct OperationName
+  let approved_admins = dynamic(["id-admin@yourdomain.gov.au"]);
+  AuditLogs
+  | where TimeGenerated > ago(1d)
+  | where OperationName in ("Consent to application", "Add OAuth2PermissionGrant", "Add service principal")
+  | extend Actor = iff(isnotempty(tostring(InitiatedBy.user.userPrincipalName)),
+                       tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName))
+  | where Actor !in~ (approved_admins)
+  | project TimeGenerated, OperationName, Actor, TargetResources, Result
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

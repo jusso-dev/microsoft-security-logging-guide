@@ -1,0 +1,52 @@
+id: d76a8fd4-83b4-5f83-b06e-f827c6b2fc00
+name: 'Defender for Endpoint - Office app spawns a script interpreter, then the device calls out'
+description: |
+  MITRE: Execution T1059 followed by Command and Control T1071. This is the classic macro or phishing attachment pattern. Source guide: endpoint/defender-for-endpoint/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - DeviceProcessEvents
+      - DeviceNetworkEvents
+queryFrequency: 1h
+queryPeriod: 2h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+  - CommandAndControl
+relevantTechniques:
+  - T1059
+  - T1071
+query: |
+  // CUSTOM - Office app spawned a script interpreter, then the device made an outbound connection
+  // ASSUMPTION: DeviceProcessEvents and DeviceNetworkEvents are streamed to this workspace.
+  // Without streaming, port this query to a Defender XDR custom detection instead.
+  let office_apps = dynamic(["winword.exe", "excel.exe", "powerpnt.exe", "outlook.exe", "msaccess.exe"]);
+  let interpreters = dynamic(["powershell.exe", "cmd.exe", "wscript.exe", "cscript.exe", "mshta.exe"]);
+  let spawns = DeviceProcessEvents
+  | where TimeGenerated > ago(2h)
+  | where InitiatingProcessFileName in~ (office_apps)
+  | where FileName in~ (interpreters)
+  | project DeviceId, FirstSeen = TimeGenerated, Parent = InitiatingProcessFileName,
+      Interpreter = FileName, Cmd = ProcessCommandLine;
+  DeviceNetworkEvents
+  | where TimeGenerated > ago(1h)
+  | where RemoteIPType == "Public"
+  | join kind=inner spawns on DeviceId
+  | where TimeGenerated > FirstSeen
+  | summarize Connections = count(), DestIPs = make_set(RemoteIP, 5), Ports = make_set(RemotePort, 5)
+      by DeviceId, Parent, Interpreter, Cmd
+  | project-away DeviceId1
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: AzureID
+        columnName: DeviceId
+  - entityType: Process
+    fieldMappings:
+      - identifier: CommandLine
+        columnName: Cmd
+version: 1.0.0
+kind: Scheduled

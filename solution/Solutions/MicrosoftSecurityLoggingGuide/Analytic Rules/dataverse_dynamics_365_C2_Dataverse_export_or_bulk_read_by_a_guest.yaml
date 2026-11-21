@@ -1,0 +1,41 @@
+id: 8c271de6-81d4-5c15-988d-5c66c543e96f
+name: 'Dataverse and Dynamics 365 - Dataverse export or bulk read by a guest'
+description: |
+  The out-of-box mass export rule baselines per user, so a newly invited guest exporting a moderate dataset can slip under it. The RetrieveMultiple branch requires Read logs to be enabled. MITRE: Exfiltration T1567, Collection T1213. Source guide: business-apps/dataverse-dynamics-365/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Dataverse
+    dataTypes:
+      - DataverseActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+  - Exfiltration
+relevantTechniques:
+  - T1213
+  - T1567
+query: |
+  // CUSTOM - Dataverse export or bulk retrieval by a guest account
+  // ASSUMPTION: guests show #EXT# in UserId or UserUpn. If not, join IdentityInfo on UserType == "Guest".
+  DataverseActivity
+  | where TimeGenerated > ago(1h)
+  | where Message in ("ExportToExcel", "RetrieveMultiple")
+  | where UserId has "#EXT#" or UserUpn has "#EXT#"
+  | summarize Events = count(), Entities = make_set(EntityName, 50), FirstSeen = min(TimeGenerated)
+              by UserId, ClientIp, InstanceUrl, Message
+  | where Message == "ExportToExcel" or Events > 500
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIp
+version: 1.0.0
+kind: Scheduled

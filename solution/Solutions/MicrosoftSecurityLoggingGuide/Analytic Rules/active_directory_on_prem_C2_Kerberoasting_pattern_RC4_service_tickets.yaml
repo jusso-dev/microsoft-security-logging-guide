@@ -1,0 +1,41 @@
+id: 11fe70e4-ccde-5d41-9cd5-c417bf9b8f2b
+name: 'Active Directory Domain Services (on-premises) - Kerberoasting pattern: RC4 service tickets in volume'
+description: |
+  4769 alone is noise. RC4 (0x17) service tickets for unusual SPNs, requested in volume from one host, are the fingerprint of Rubeus, Impacket's GetUserSPNs and friends. MITRE: Credential Access T1558.003. Modern domains issue AES tickets, so a healthy baseline has almost no RC4. Investigate legacy application exceptions before you tune the threshold. Source guide: identity/active-directory-on-prem/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1558.003
+query: |
+  // CUSTOM - burst of RC4 encrypted Kerberos service tickets per requesting account
+  SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID == 4769
+  // ASSUMPTION: the ticket encryption type is inside EventData, with RC4 encoded as 0x17,
+  // and the requested SPN is in the same EventData. Confirm the rendering first:
+  //   SecurityEvent | where EventID == 4769 | take 5 | project EventData
+  | where EventData has "0x17"
+  | summarize Tickets = count() by SubjectUserName, IpAddress
+  | where Tickets >= 10
+  | project SubjectUserName, IpAddress, Tickets
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: SubjectUserName
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IpAddress
+version: 1.0.0
+kind: Scheduled
