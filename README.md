@@ -1,5 +1,7 @@
 # Microsoft security logging guide
 
+> **Read the searchable guide online:** [jusso-dev.github.io/microsoft-security-logging-guide](https://jusso-dev.github.io/microsoft-security-logging-guide/) (updated automatically every night).
+
 Practical, product-by-product guidance on getting high-value security logs from Microsoft products into Microsoft Sentinel and Microsoft Defender XDR.
 
 Microsoft's guidance on what to log is spread across hundreds of product pages. This repo pulls it into one place, with a folder per product that tells a security team which logs matter, which table they land in, how to connect them, what they cost, and which detections to switch on. Every guide links back to the official Microsoft documentation it's based on.
