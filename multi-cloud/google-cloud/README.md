@@ -41,6 +41,14 @@ All tables below are billable Sentinel ingestion delivered via GCP Pub/Sub and S
 4. **Set table tiers.** Keep `GCPAuditLogs` and `GoogleCloudSCC` in Analytics. Set `GCPVPCFlow` and `GCPDNS` to the data lake tier in Table management if you only use them for hunting.
 5. **Validate.** Allow 15 to 30 minutes for initial Pub/Sub polling, then run the KQL queries below.
 
+## Best-practice security configuration
+
+Apply core Google Cloud security controls alongside Cloud Audit Logs and SCC ingestion into Sentinel. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Federate identity & avoid service account keys:** Federate workforce users from Microsoft Entra ID, use **Workload Identity Federation** instead of exported JSON service account keys, and enforce the `iam.disableServiceAccountKeyCreation` organisation policy ([GCP Security Framework](https://cloud.google.com/architecture/framework/security)).
+- **Organisation-level log sinks & Security Command Center:** Configure aggregated organisation-level Cloud Logging sinks for Admin Activity, System Event and Policy Denied logs, and enable **Security Command Center** across the org.
+- **VPC Service Controls & uniform bucket access:** Enforce uniform bucket-level access and `storage.publicAccessPrevention` on Cloud Storage buckets, use VPC Service Controls around sensitive data projects, and onboard GCP projects to **Defender CSPM**.
+
 ## Architecture diagram
 
 ```mermaid

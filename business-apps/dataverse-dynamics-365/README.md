@@ -88,6 +88,14 @@ This guide covers Dataverse / Dynamics 365 CE (`DataverseActivity`) and Dynamics
 6. **Connect Dynamics 365 Finance and Operations in Sentinel.** Open the **Dynamics 365 Finance and Operations** connector from the Business Applications solution and configure it with the Tenant ID, Client ID, Client Secret and F&O environment URL. Data lands in `FinanceOperationsActivity_CL`.
 7. **Validate.** Update a test record in Dataverse (and in a non-production or test F&O table) and run the validation queries below.
 
+## Best-practice security configuration
+
+Apply least-privilege access and auditing controls to every production Dataverse and Dynamics 365 environment. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Environment security groups & least-privilege roles:** Bind every production Dataverse environment to an Entra security group, avoid cloning System Administrator, and use custom least-privilege security roles + column-level security for sensitive fields ([Security roles and privileges](https://learn.microsoft.com/en-us/power-platform/admin/security-roles-privileges)).
+- **IP firewall & cookie binding:** Enable IP address-based cookie binding and IP firewall restrictions on sensitive production environments to block stolen session cookie replay ([Power Platform security overview](https://learn.microsoft.com/en-us/power-platform/admin/security/security-overview)).
+- **Blocked file extensions & application users:** Keep dangerous attachment extensions blocked in org settings, use Entra Managed Identities / certificates (not long-lived client secrets) for Dataverse and F&O application users, and require MFA on all Dynamics 365 / LCS sign-ins.
+
 ## Architecture diagram
 
 ```mermaid

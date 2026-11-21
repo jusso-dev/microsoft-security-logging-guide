@@ -89,6 +89,15 @@ XPath entries in a DCR take the form `LogName!XPathQuery` and support up to 20 e
 10. **Add a workspace transform if needed.** The `SecurityEvent` table supports DCR workspace transformations. A common one drops 4624 noise from service accounts or health probes before you pay for it ([table attributes](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/securityevent)).
 11. **Run the validation KQL below**, including the ASD event coverage query, before you enable any analytic rules.
 
+## Best-practice security configuration
+
+Harden on-premises Active Directory to prevent Tier-0 escalation alongside DC security event logging. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Enterprise access model (Tiering & PAWs):** Isolate Tier-0 identities (Domain Admins, Enterprise Admins, AD FS/AD CS/Entra Connect admins) onto hardened Privileged Access Workstations and block Tier-0 accounts from signing in to workstations or member servers ([Enterprise access model](https://learn.microsoft.com/en-us/security/privileged-access-workstations/privileged-access-access-model)).
+- **Protected Users & minimal Domain Admins:** Place human privileged accounts in the **Protected Users** group (disables NTLM, DES/RC4 and delegation), keep permanent Domain Admins minimal, and disable unconstrained Kerberos delegation ([Best practices for securing AD](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory)).
+- **LDAP signing, channel binding & SMB signing:** Enforce LDAP signing, LDAP channel binding and SMB signing on all Domain Controllers, and disable NTLMv1 and SMBv1 domain-wide.
+- **Rotate `krbtgt` twice & harden AD CS:** Plan periodic double rotation of the `krbtgt` password and audit AD CS certificate templates for ESC1 to ESC8 misconfigurations.
+
 ## Architecture diagram
 
 ```mermaid

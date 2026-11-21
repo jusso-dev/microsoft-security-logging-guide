@@ -62,6 +62,14 @@ The AD FS Admin log and the Tracelog in Event Viewer are troubleshooting aids, n
 8. **Connect Defender XDR to Sentinel.** Incident and alert sync is automatic when Sentinel is onboarding to the Defender portal, and gives you the MDI AD FS alerts. Optionally stream `IdentityLogonEvents` and `IdentityDirectoryEvents` through the XDR connector's event streaming.
 9. **Validate with the KQL below**, including a check that 1200-series events are arriving through the `SecurityEvent` stream.
 
+## Best-practice security configuration
+
+Microsoft recommends migrating off AD FS to Microsoft Entra cloud authentication (Password Hash Sync or Pass-through Authentication) where possible; while AD FS remains in service, harden every farm node. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Extranet Smart Lockout (ESL):** Enable Extranet Smart Lockout on AD FS 2016/2019/2022 to stop external password spray without locking out legitimate users on familiar IPs ([Extranet Smart Lockout](https://learn.microsoft.com/en-us/windows-server/identity/ad-fs/operations/configure-ad-fs-extranet-smart-lockout-protection)).
+- **Protect token-signing certificates & Tier-0 access:** Treat AD FS servers and their WID/SQL databases as Tier-0 assets (same controls as Domain Controllers), deploy the Defender for Identity sensor on every AD FS node, and disable legacy WS-Trust / legacy auth endpoints that aren't required.
+- **Plan cloud-auth migration:** Move relying-party apps directly to Entra ID and retire AD FS federation to eliminate Golden SAML attack surface ([Best practices for securing AD](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/best-practices-for-securing-active-directory)).
+
 ## Architecture diagram
 
 ```mermaid

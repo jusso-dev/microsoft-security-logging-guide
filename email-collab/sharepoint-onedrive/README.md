@@ -65,6 +65,15 @@ The Microsoft 365 connector's SharePoint selection covers both `SharePoint` and 
 10. **Enable the rules.** Investigation & response > Detection > Analytics. Turn on the Microsoft 365 solution rules listed below and set your thresholds.
 11. **Generate test activity and validate.** Download a few files, create an anonymous link on a test library, share a file to an external address. Then run the validation queries.
 
+## Best-practice security configuration
+
+Prevent accidental oversharing and link leaks before relying on audit alerts. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Restrict external & anonymous sharing:** Disable **Anyone** (anonymous) links at the tenant level or set mandatory expiration (for example 7 to 30 days) and view-only defaults, and default internal sharing links to **Specific people** rather than Everyone ([External sharing overview](https://learn.microsoft.com/en-us/sharepoint/external-sharing-overview)).
+- **Unmanaged device access control:** Restrict unmanaged devices to browser-only (block download, print and sync) via SharePoint + Conditional Access App Control.
+- **Idle session sign-out & legacy auth:** Enable idle session sign-out for unmanaged browsers and keep legacy authentication blocked.
+- **Sensitivity labels & site access reviews:** Apply Purview sensitivity labels to sensitive SharePoint sites to enforce privacy, external sharing limits and Conditional Access automatically.
+
 ## Architecture diagram
 
 ```mermaid

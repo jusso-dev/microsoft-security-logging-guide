@@ -64,6 +64,14 @@ Microsoft 365 Copilot brings generative AI across Word, Excel, PowerPoint, Outlo
 7. **Generate test events.** Send a few prompts in Microsoft 365 Copilot Chat referencing a test SharePoint document with a sensitivity label.
 8. **Validate.** Wait 15 to 60 minutes for unified audit pipeline latency, then run the validation queries below in the Defender portal under Investigation & response > Advanced hunting.
 
+## Best-practice security configuration
+
+Microsoft 365 Copilot inherits every user's existing Microsoft 365 permissions, so fixing oversharing is the single most impactful control. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Fix SharePoint oversharing first:** Use SharePoint Advanced Management (Restricted SharePoint Search, site access reviews, Restricted Access Control) to eliminate "Everyone except external users" sites before broad Copilot rollout ([M365 Copilot security and privacy](https://learn.microsoft.com/en-us/copilot/microsoft-365/microsoft-365-copilot-privacy)).
+- **Purview DSPM for AI & sensitivity labels:** Enable **Microsoft Purview DSPM for AI** to monitor AI interactions, apply sensitivity labels (Copilot respects label encryption/extraction rights and inherits the highest label of referenced files), and deploy Purview DLP rules to exclude highly confidential files from Copilot grounding ([DSPM for AI](https://learn.microsoft.com/en-us/purview/dspm-for-ai)).
+- **Control web search & plugins:** Govern Copilot plugins/extensibility via the Microsoft 365 admin centre Integrated Apps allow-list.
+
 ## Architecture diagram
 
 ```mermaid

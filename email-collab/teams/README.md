@@ -64,6 +64,15 @@ Enable this after the P1 identity and email sources. Sibling guides: [Microsoft 
 9. **Enable the activity policies.** In Defender for Cloud Apps, create policies from the External user added (Teams), Mass deletion (Teams) and Access level change (Teams) templates ([search the audit log for Teams events](https://learn.microsoft.com/en-us/purview/audit-teams-audit-log-events)).
 10. **Enable the rules and validate.** Turn on the rules below, add a test guest to a test team, upload a file to a chat, and run the validation queries.
 
+## Best-practice security configuration
+
+Harden external federation, meetings and third-party apps in Teams alongside audit logging. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Restrict external access (federation):** Switch external access from "Allow all external domains" to an **allow-list of approved partner domains** (blocks uninvited external Teams phishing and impersonation) ([Teams security overview](https://learn.microsoft.com/en-us/microsoftteams/security-compliance-overview)).
+- **Lock down third-party & custom apps:** Block unapproved third-party apps by default and require admin review before users can install bots or connectors into channels.
+- **Meeting lobby & anonymous join:** Require external/anonymous participants to wait in the meeting lobby and restrict who can present or record sensitive meetings.
+- **Safe Links & ZAP for Teams:** Enable Defender for Office 365 Safe Links and Zero-hour Auto Purge for Teams chats.
+
 ## Architecture diagram
 
 ```mermaid

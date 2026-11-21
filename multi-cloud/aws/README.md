@@ -43,6 +43,14 @@ All tables below arrive through the **Amazon Web Services S3** connector in the 
 5. **Set table tiers.** Keep `AWSCloudTrail` and `AWSGuardDuty` in Analytics. Move `AWSVPCFlow` and verbose `AWSCloudWatch` streams to the data lake tier in Table management.
 6. **Validate.** Allow 20 to 30 minutes for initial polling, then run the KQL queries below.
 
+## Best-practice security configuration
+
+Apply core AWS security controls alongside CloudTrail and GuardDuty ingestion into Sentinel. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Lock down the root account & enforce IAM Identity Center:** Enable hardware MFA on the AWS root user (never create root access keys), federate human access through Microsoft Entra ID to AWS IAM Identity Center, and use short-lived IAM roles/OIDC instead of long-lived IAM user access keys ([AWS IAM best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html)).
+- **Organisation-wide CloudTrail & GuardDuty:** Enable an **AWS Organizations multi-region CloudTrail** (with log file validation and S3 Object Lock / bucket protection) and enable **GuardDuty** across every account and region.
+- **S3 Block Public Access & IMDSv2:** Enable account-level S3 Block Public Access, require IMDSv2 on EC2 instances, and onboard AWS accounts to **Defender CSPM** for cross-cloud attack path visibility.
+
 ## Architecture diagram
 
 ```mermaid

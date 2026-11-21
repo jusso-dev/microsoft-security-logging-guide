@@ -69,6 +69,14 @@ This guide covers Copilot Studio agent runtime telemetry (`CopilotActivity`), ag
 7. **Onboard Defender Security for AI / Agent 365 (if licensed).** In the Defender portal, enable Copilot Studio integration under Security for AI / Agent 365 so agent posture and runtime alerts populate `AgentsInfo` ([Microsoft Learn](https://learn.microsoft.com/en-us/defender-xdr/security-for-ai/transition-agent-security-to-agent-365)).
 8. **Generate test activity and validate.** Create a test agent in a sandbox environment, modify a topic, send a prompt and run the validation queries below from Investigation & response > Advanced hunting.
 
+## Best-practice security configuration
+
+Block unauthenticated agents preventively before relying on audit alerts. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Block unauthenticated agents via DLP:** Block the `Chat without Microsoft Entra ID authentication` connector in your Power Platform data policies so makers cannot publish anonymous agents ([Copilot Studio security and governance](https://learn.microsoft.com/en-us/microsoft-copilot-studio/security-and-governance)).
+- **Enforce Entra authentication & restrict knowledge sources:** Require **Authenticate with Microsoft** on internal agents, restrict SharePoint/Dataverse grounding to authorised environments, and disable unreviewed generative actions or external HTTP connectors.
+- **Agent inventory & runtime protection:** Enable Defender Security for AI / Microsoft Agent 365 (if licensed) for continuous agent posture visibility and real-time tool-call protection.
+
 ## Architecture diagram
 
 ```mermaid

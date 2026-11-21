@@ -62,6 +62,7 @@ nav:
       - Prioritisation (ASD ACSC): docs/prioritisation.md
       - Architecture overview: docs/architecture.md
   - Design & operate:
+      - Security configurations (all products): docs/security-configurations.md
       - Defender hardening & best practices: docs/defender-best-practices.md
       - Avoid Defender XDR duplication: docs/defender-xdr-vs-sentinel.md
       - Data lake vs Analytics tiering: docs/data-lake-tiering.md

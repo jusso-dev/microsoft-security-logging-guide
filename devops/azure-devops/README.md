@@ -65,6 +65,14 @@ Azure DevOps audit streaming also supports **Azure Event Grid** and **Splunk** a
 5. **Generate test events.** Create and delete a test repository or short-lived PAT in a sandbox project.
 6. **Validate.** Native audit streams typically land within 5 to 15 minutes; CCF polling lands on its polling cycle. Run the validation queries below in Advanced hunting with your Sentinel workspace selected.
 
+## Best-practice security configuration
+
+Lock down Azure DevOps organisations backed by Microsoft Entra ID alongside audit streaming. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Entra-backed orgs & Conditional Access:** Ensure every organisation is connected to Microsoft Entra ID with **Enable Azure Active Directory Conditional Access Policy Validation** turned on, and disable third-party/SSH/alternate auth methods you don't use ([Azure DevOps security best practices](https://learn.microsoft.com/en-us/azure/devops/organizations/security/security-best-practices)).
+- **Restrict PATs & use Workload Identity Federation:** Restrict global and full-scope Personal Access Token creation via Entra tenant policies (enforce short expiry), and migrate all Azure Resource Manager service connections from client secrets to **Workload Identity Federation (OIDC)**.
+- **Branch policies & pipeline approvals:** Require minimum reviewers, linked work items and build validation on protected branches, put production environments behind manual approvals + checks, and restrict self-hosted agent pool administration.
+
 ## Architecture diagram
 
 ```mermaid

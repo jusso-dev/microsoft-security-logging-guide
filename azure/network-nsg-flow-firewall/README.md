@@ -80,6 +80,14 @@ Azure networking telemetry spans four layers: Virtual Network (VNet) flow logs v
 7. **Scale with Azure Policy.** Use the Azure Policy assignment wizards on the **Azure Firewall**, **Azure Web Application Firewall (WAF)** and **Azure DDoS Protection** connector pages so new networking resources auto-attach to Sentinel.
 8. **Validate.** Generate test traffic (for example a benign WAF test request or firewall rule hit), wait 10 to 15 minutes (up to 60 minutes for Traffic Analytics if on the 60-minute interval), and run the validation queries below.
 
+## Best-practice security configuration
+
+Harden Azure network perimeters alongside flow, firewall and WAF logging. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Azure Firewall Premium (IDPS + Threat Intel):** Enable Threat Intelligence in **Alert and deny** mode, enable **IDPS** in **Alert and deny** (after a short alert-only tuning window) with TLS inspection for sensitive outbound workloads, and use Firewall Policies centrally ([Azure Firewall overview](https://learn.microsoft.com/en-us/azure/firewall/overview)).
+- **WAF in Prevention mode:** Run Azure Application Gateway and Front Door WAF with the latest Microsoft Default / DRS managed rule set + Bot Manager in **Prevention** mode (use Detection mode only briefly while tuning exclusions) ([WAF best practices](https://learn.microsoft.com/en-us/azure/web-application-firewall/ag/best-practices)).
+- **VNet flow logs & DDoS Protection:** Migrate all NSG flow logs to **VNet flow logs** well ahead of the 30 September 2027 retirement, enable **Azure DDoS Network Protection** on internet-facing VNets, and default-deny inbound internet traffic on NSGs ([Azure DDoS Protection](https://learn.microsoft.com/en-us/azure/ddos-protection/ddos-protection-overview)).
+
 ## Architecture diagram
 
 ```mermaid

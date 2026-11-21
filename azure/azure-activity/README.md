@@ -69,6 +69,14 @@ Because ingestion into `AzureActivity` is free, enabling all categories through 
 9. **Review and create.** Select Review + create, then Create. Wait 15 to 30 minutes for the remediation task to deploy diagnostic settings across subscriptions.
 10. **Validate.** Run the validation KQL queries below in Defender portal > Investigation & response > Advanced hunting with your Sentinel workspace selected, and verify every subscription ID appears in `AzureActivity`.
 
+## Best-practice security configuration
+
+Combine free `AzureActivity` logging with Azure governance guardrails. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Management group hierarchy & Azure Policy:** Organise subscriptions under management groups and assign the **Microsoft Cloud Security Benchmark (MCSB)** initiative plus DeployIfNotExists policies for diagnostic settings at management group scope ([Management groups](https://learn.microsoft.com/en-us/azure/governance/management-groups/overview), [Microsoft Cloud Security Benchmark](https://learn.microsoft.com/en-us/security/benchmark/azure/overview)).
+- **PIM for Azure RBAC:** Keep `Owner`, `Contributor` and `User Access Administrator` assignments eligible via Entra PIM (never permanent), and prefer built-in least-privilege roles.
+- **Resource locks & allowed regions:** Apply `CanNotDelete` locks on critical networking, identity and Sentinel Log Analytics workspaces, and enforce allowed Azure regions and SKUs via Azure Policy.
+
 ## Architecture diagram
 
 ```mermaid

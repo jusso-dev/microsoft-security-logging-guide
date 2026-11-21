@@ -80,6 +80,15 @@ Notification emails go to actively assigned Global Administrators, Security Admi
 9. **Generate or simulate detections.** The simulate risk page in ID Protection can produce test detections for some types ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/id-protection/howto-identity-protection-simulate-risk)).
 10. **Validate.** Run the queries below. Real-time detections surface in 5 to 10 minutes, offline detections can take up to 48 hours ([Microsoft Learn](https://learn.microsoft.com/en-us/entra/id-protection/concept-risk-detection-types)).
 
+## Best-practice security configuration
+
+Turn Entra ID Protection signals into automated Conditional Access controls rather than alert-only visibility. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **User risk policy (Conditional Access):** Require a secure password change (plus MFA) on **High** user risk, and review **Medium** user risk for sensitive groups ([Risk policies](https://learn.microsoft.com/en-us/entra/id-protection/howto-identity-protection-configure-risk-policies)).
+- **Sign-in risk policy (Conditional Access):** Require MFA (or block) on **Medium and High** sign-in risk so anomalous token or credential replay prompts immediate re-authentication.
+- **Workload identity risk policy (if licensed):** Block or alert on **High** risk service principals and rotate app credentials immediately when flagged.
+- **Keep risk policies in Conditional Access, not legacy ID Protection blades:** Manage risk policies in Conditional Access so exclusions, report-only testing and break-glass rules stay consistent.
+
 ## Architecture diagram
 
 ```mermaid

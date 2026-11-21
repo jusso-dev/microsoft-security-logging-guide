@@ -100,6 +100,15 @@ DCR custom filtering takes XPath 1.0 in the form `LogName!XPathQuery`. Test each
 
 The AppLocker channel-to-event-ID split above (8001 to 8004 in EXE and DLL, 8005 to 8007 in MSI and Script) is the standard mapping. Check it against a blocked app in your own Event Viewer before you rely on it.
 
+## Best-practice security configuration
+
+Apply Microsoft's baseline OS hardening across Windows clients alongside event collection. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Intune Security Baselines:** Deploy Microsoft's **Windows Security Baseline** and **Microsoft Defender for Endpoint baseline** via Intune instead of ad-hoc GPOs ([Intune security baselines](https://learn.microsoft.com/en-us/intune/intune-service/protect/security-baselines)).
+- **Credential Guard & HVCI:** Enable **Windows Defender Credential Guard** and Memory Integrity (HVCI) to stop LSASS credential dumping and kernel tampering ([Credential Guard](https://learn.microsoft.com/en-us/windows/security/identity-protection/credential-guard/)).
+- **Windows LAPS & least privilege:** Remove standard users from local Administrators and deploy **Windows LAPS** backed by Entra ID or AD so every workstation has a unique, rotated local admin password ([Windows LAPS](https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-overview)).
+- **BitLocker & PowerShell Constrained Language:** Enforce BitLocker with TPM + Entra key escrow, disable PowerShell v2, and enable Script Block Logging (`4104`).
+
 ## Architecture diagram
 
 ```mermaid

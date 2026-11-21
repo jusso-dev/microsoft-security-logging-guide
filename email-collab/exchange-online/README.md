@@ -52,6 +52,15 @@ Exchange Online activity reaches Microsoft Sentinel through the Purview unified 
 9. **Validate.** Allow up to 12 hours for the first data, then run the validation queries below. Exchange audit records are typically available 60 to 90 minutes after the event ([audit search](https://learn.microsoft.com/en-us/purview/audit-search)).
 10. **Enable the day 1 rules** from the Microsoft 365 solution, then add the custom detections.
 
+## Best-practice security configuration
+
+Lock down Exchange Online authentication, forwarding and admin surfaces alongside `OfficeActivity` logging. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Keep Basic Authentication disabled:** Ensure legacy Basic Auth remains permanently disabled across POP, IMAP, EWS, ActiveSync and SMTP AUTH (disable SMTP AUTH tenant-wide and enable per-mailbox only where legacy relays truly require it) ([Basic Auth deprecation](https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/deprecation-of-basic-authentication-exchange-online)).
+- **Block automatic external forwarding:** Keep outbound spam policies set to **Off - Forwarding is disabled** (or Automatic - System-controlled) so attackers cannot silently exfiltrate mail via inbox rules ([Control external forwarding](https://learn.microsoft.com/en-us/defender-office-365/outbound-spam-policies-external-email-forwarding)).
+- **RBAC for Applications & mailbox auditing:** Restrict app-only Graph/EWS access using Exchange RBAC for Applications (not tenant-wide `Mail.Read`), and keep mailbox auditing enabled org-wide (`AuditDisabled = False`).
+- **SPF, DKIM and DMARC:** Sign outbound mail with DKIM on all custom domains and move DMARC to `p=reject`.
+
 ## Architecture diagram
 
 ```mermaid

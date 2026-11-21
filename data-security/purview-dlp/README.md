@@ -70,6 +70,14 @@ DLP telemetry is split across Defender XDR alerts and behaviours, Microsoft 365 
 8. **Generate a test match.** Trigger a test DLP policy in simulation or audit mode (for example, send a test document matching a dummy sensitive info type) and make a harmless test edit to a test DLP policy so you can confirm both match and policy-change events land.
 9. **Validate.** Run the validation queries below in Defender portal > Investigation & response > Advanced hunting.
 
+## Best-practice security configuration
+
+Roll out DLP progressively so policies prevent exfiltration without breaking legitimate work. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Simulation mode first, then Block with override, then Block:** Deploy every new DLP policy in **Simulation mode** with policy tips enabled, tune false positives in Activity Explorer, then move high-confidence sensitive info types (TFNs, credit cards, credentials, confidential labels) to Block ([Design a DLP policy](https://learn.microsoft.com/en-us/purview/dlp-policy-design)).
+- **Cover all exfiltration channels:** Pair Exchange/SharePoint/OneDrive/Teams policies with **Endpoint DLP** (restricting USB copy, personal cloud uploads, printing and unallowed browsers) and Defender for Cloud Apps session policies.
+- **Protect DLP policy integrity:** Limit DLP Compliance Management roles via PIM and alert immediately on any policy disable or edit.
+
 ## Architecture diagram
 
 ```mermaid

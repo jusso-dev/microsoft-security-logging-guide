@@ -82,6 +82,15 @@ Microsoft's Zero Trust workshop guidance lists audit, sign-in, service principal
 9. **Validate.** Run the validation queries below from the Defender portal under Investigation & response > Advanced hunting, with your Sentinel workspace selected. Sign-in and audit events usually land within about 15 minutes. Graph activity events mostly arrive within 30 minutes, up to 2 hours.
 10. **Enable the day-1 rules.** See the next section, then run validation query 5 after a week to review cost.
 
+## Best-practice security configuration
+
+Lock down the identity plane alongside logging so stolen passwords and illicit consent grants fail before reaching data. See all product baselines in [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Phishing-resistant MFA & Conditional Access:** Require MFA for all users (phishing-resistant FIDO2/passkey or Windows Hello for Business for admins), block legacy authentication protocols, and require compliant or hybrid-joined devices for sensitive apps ([Plan Conditional Access](https://learn.microsoft.com/en-us/entra/identity/conditional-access/plan-conditional-access)).
+- **Privileged Identity Management (PIM):** Keep all privileged Entra roles (Global Admin, Security Admin, Privileged Role Admin) eligible rather than permanently active, with MFA, approval and time-bound activation ([PIM overview](https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-configure)).
+- **Break-glass emergency accounts:** Maintain two cloud-only emergency access accounts excluded from Conditional Access, protected with FIDO2 hardware keys and monitored by a high-severity alert on any sign-in ([Emergency access accounts](https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/security-emergency-access)).
+- **Lock down user OAuth consent:** Disable unrestricted end-user app consent and require admin consent workflows for third-party apps ([Configure user consent](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/configure-user-consent)).
+
 ## Architecture diagram
 
 ```mermaid

@@ -73,6 +73,14 @@ The same streams can be enabled from the Microsoft Entra ID data connector in Se
 
 Remote network health logs can take up to three days to start appearing in the destination ([How to use the remote network health logs](https://learn.microsoft.com/en-us/entra/global-secure-access/how-to-remote-network-health-logs)).
 
+## Best-practice security configuration
+
+Pair Global Secure Access telemetry with Zero Trust network enforcement. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Strict enforcement & compliant network:** Enable the **Compliant network** Conditional Access control so Microsoft 365 and private apps reject sessions bypassing the Global Secure Access tunnel (prevents token replay from attacker IPs) ([Global Secure Access overview](https://learn.microsoft.com/en-us/entra/global-secure-access/overview-what-is-global-secure-access)).
+- **Web content filtering & TLS inspection:** Enable web category filtering and threat-intelligence blocking on the Internet Access forwarding profile, and scope Private Access app segments to least-privilege host/port pairs instead of broad CIDR ranges.
+- **Source IP restoration:** Enable source IP restoration for Microsoft 365 traffic so Conditional Access location policies and `SigninLogs` see the real client egress IP.
+
 ## Architecture diagram
 
 ```mermaid

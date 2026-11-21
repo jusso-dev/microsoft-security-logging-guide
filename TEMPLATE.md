@@ -22,6 +22,10 @@ To do. Licences, audit settings that must be on, and roles needed to connect.
 
 To do. Numbered steps from a clean tenant to data landing, using current Defender portal navigation.
 
+## Best-practice security configuration
+
+To do. Microsoft's recommended hardening settings for this product, with official Microsoft Learn links.
+
 ## Architecture diagram
 
 To do. A Mermaid `flowchart` from the product to its tables, showing the connector or agent and the tier.

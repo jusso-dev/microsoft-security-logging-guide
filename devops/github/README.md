@@ -76,6 +76,15 @@ GitHub Enterprise Cloud hosts source code, CI/CD workflows (GitHub Actions), sec
 2. **Connect Defender for Cloud DevOps Security.** Azure portal > Microsoft Defender for Cloud > Environment settings > **Add environment** > **GitHub**. Authorise the GitHub App on your target organisations so findings flow into Defender for Cloud and `SecurityAlert` ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-devops-introduction)).
 3. **Validate.** Perform a benign test action in a sandbox repo (for example toggle a test repo setting), wait 5 to 15 minutes, and run the validation queries below.
 
+## Best-practice security configuration
+
+Harden GitHub Enterprise Cloud identity, repositories and Actions supply chains alongside audit streaming. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Entra SAML SSO / EMU & phishing-resistant 2FA:** Enforce SAML SSO (or Enterprise Managed Users backed by Microsoft Entra ID) and require 2FA across all organisations ([GitHub Enterprise best practices](https://docs.github.com/en/enterprise-cloud@latest/admin/overview/best-practices-for-enterprises)).
+- **Secret scanning push protection & branch rulesets:** Enable **Secret scanning with Push protection** across all repos, enforce repository rulesets (require PR reviews, signed commits, status checks and block force pushes to `main`), and restrict repository visibility changes to org owners.
+- **OIDC instead of long-lived secrets & Actions allow-list:** Use GitHub Actions OIDC federated credentials to Azure/AWS/GCP instead of static cloud keys, pin third-party Actions to full commit SHAs, and set `GITHUB_TOKEN` default permissions to read-only.
+- **Fine-grained PAT governance:** Disable classic PATs where possible, enforce maximum token lifetimes and require org admin approval for fine-grained PATs.
+
 ## Architecture diagram
 
 ```mermaid

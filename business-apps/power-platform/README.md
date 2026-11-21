@@ -78,6 +78,14 @@ Both `PowerPlatformAdminActivity` and `PowerAutomateActivity` support the Sentin
 9. **Validate ingestion.** Run the validation queries below from the Defender portal under Investigation & response > Advanced hunting with your Sentinel workspace selected. Allow up to 60 minutes on initial setup.
 10. **Enable day-1 rules.** Edit environment ID lists, allowed domains and blocked country codes in the out-of-box rules, pick Sentinel or Defender XDR format per rule to avoid duplicates, and enable them.
 
+## Best-practice security configuration
+
+Prevent risky maker connections via governance policies so Sentinel detections serve as a backstop. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Tenant-wide Data (DLP) policies:** Classify Microsoft 365/Dataverse connectors as **Business**, block consumer/raw exfiltration connectors (`Gmail`, `Dropbox`, `Outlook.com`, `HTTP`, `FTP/SFTP`) in the **Blocked** group, and lock down the Default environment tightly ([Data policies](https://learn.microsoft.com/en-us/power-platform/admin/wp-data-loss-prevention)).
+- **Tenant Isolation & Managed Environments:** Enable **Tenant Isolation** (block cross-tenant Entra connector traffic except explicit allow-listed partner tenants), enable **Managed Environments** to cap canvas app sharing, and restrict who can create new production environments ([Power Platform security overview](https://learn.microsoft.com/en-us/power-platform/admin/security/security-overview)).
+- **Environment routing & security groups:** Route new makers to personal developer environments and bind every production environment to a dedicated Entra security group.
+
 ## Architecture diagram
 
 ```mermaid

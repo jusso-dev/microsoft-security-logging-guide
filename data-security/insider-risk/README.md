@@ -68,6 +68,14 @@ Microsoft recommends separating Purview policy administrators from case investig
 7. **Validate.** Run the validation queries below in Defender portal > Investigation & response > Advanced hunting once an active policy generates a test or live alert. Note that Insider Risk Management builds baselines over 24 to 48 hours after a policy is created, so alerts don't appear immediately on a brand new tenant.
 8. **Enable the day-1 rules and configure escalation.** Enable the alert and correlation rules below and deploy the `Notify-Insider Risk Management Team` playbook if your SOC escalates cases back to the compliance team.
 
+## Best-practice security configuration
+
+Configure Insider Risk Management with strong privacy controls and accurate signals. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Role separation & anonymisation:** Separate **Insider Risk Management Admins** (configure policies, cannot see cases) from **Analysts/Investigators** (review cases), keep pseudonymisation on inside Purview, and get HR/Legal sign-off before turning on Defender XDR data sharing ([Configure Insider Risk Management](https://learn.microsoft.com/en-us/purview/insider-risk-management-configure)).
+- **Connect an HR resignation/termination connector:** Feed departure dates from Workday/SuccessFactors/CSV so the **Data theft by departing users** policy triggers reliably.
+- **Priority user groups & adaptive protection:** Define priority user groups (execs, R&D, admins) and pair Insider Risk levels with **Adaptive Protection** so elevated-risk users automatically receive stricter Purview DLP blocks.
+
 ## Architecture diagram
 
 ```mermaid

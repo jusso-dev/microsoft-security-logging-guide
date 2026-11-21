@@ -54,6 +54,14 @@ The Microsoft Purview unified audit log records thousands of user and admin oper
 8. **Add the rest of the audit estate.** In the Defender portal, go to **Settings > Cloud apps > App connectors**, connect **Microsoft 365**, and make sure the Microsoft 365 activities checkbox is selected so `CloudAppEvents` populates ([CloudAppEvents table](https://learn.microsoft.com/en-us/defender-xdr/advanced-hunting-cloudappevents-table)). For Power Platform and Copilot, install the Business Applications and Microsoft Copilot solutions, which also read Purview audit ([Microsoft Copilot connector](https://learn.microsoft.com/en-us/azure/sentinel/data-connectors-reference#microsoft-copilot), [Power Platform guide](../../business-apps/power-platform/README.md)).
 9. **Enable the day 1 rules** listed below, then add the custom detections.
 
+## Best-practice security configuration
+
+Ensure the unified audit log is resilient and retains enough history for investigations. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Keep Unified Audit Logging enabled & protected:** Confirm `UnifiedAuditLogIngestionEnabled = True` and alert immediately if anyone attempts to modify audit config.
+- **Configure Audit (Premium) retention policies:** If licensed for Audit (Premium) / E5, create explicit retention policies (1 year default, up to 10 years with the add-on) for high-value workloads (`Exchange`, `SharePoint`, `AzureActiveDirectory`, `Copilot`) ([Audit log retention policies](https://learn.microsoft.com/en-us/purview/audit-log-retention-policies)).
+- **Least-privilege audit access:** Grant SOC analysts **View-Only Audit Logs** rather than Audit Logs write permissions.
+
 ## Architecture diagram
 
 ```mermaid

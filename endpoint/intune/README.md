@@ -74,6 +74,15 @@ Audit and operational events arrive within about 30 minutes of the action. The t
 9. **Pin operation names.** Run validation query 2 and record the exact `OperationName` values your tenant emits for wipe, retire, delete, scripts, compliance and role changes. The custom detections below depend on them.
 10. **Add detections.** In the Defender portal, go to **Investigation & response** > **Detection** > **Analytics** and create the custom rules from the next sections.
 
+## Best-practice security configuration
+
+Harden both the Intune management plane and enrolled devices. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Enrolment restrictions:** Block personal (BYOD) device enrolment where corporate devices are required, enforce minimum OS versions, and limit devices per user.
+- **Compliance policies paired with Conditional Access:** Mark devices non-compliant if BitLocker, firewall, Defender AV, or minimum patch levels fail, and require **Compliant device** in Conditional Access ([Intune security baselines](https://learn.microsoft.com/en-us/intune/intune-service/protect/security-baselines)).
+- **Multi-Admin Approval (MAA):** Enable Multi-Admin Approval for high-impact Intune actions (device wipes, scripts, apps and role changes) so one compromised Intune Admin cannot wipe the fleet.
+- **Role scoping:** Use Intune scope tags and custom RBAC roles rather than assigning Entra Global Admin or unrestricted Intune Administrator.
+
 ## Architecture diagram
 
 ```mermaid

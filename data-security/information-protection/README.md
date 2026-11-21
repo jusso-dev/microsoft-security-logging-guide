@@ -64,6 +64,14 @@ Label telemetry spans the dedicated Sentinel table, the Microsoft 365 unified au
 7. **Generate test events.** Apply a sensitivity label to a test document in Word or SharePoint, downgrade or remove it with a justification, and wait 15 to 30 minutes for Office Management API delivery.
 8. **Validate.** Run the validation queries below in Defender portal > Investigation & response > Advanced hunting with your Sentinel workspace selected.
 
+## Best-practice security configuration
+
+Keep your sensitivity label taxonomy simple enough that users apply it consistently. See [Microsoft recommended security configurations](../../docs/security-configurations.md).
+
+- **Simple taxonomy (4 to 5 top-level labels):** Start with a clear hierarchy (for example Public, General, Confidential, Highly Confidential) with sub-labels only where encryption or audience rules differ ([Learn about sensitivity labels](https://learn.microsoft.com/en-us/purview/sensitivity-labels)).
+- **Default labelling & mandatory justification:** Set a default label (such as General/Internal) for new Office documents and emails, and require user justification for label downgrades or removals.
+- **Container & auto-labelling:** Enable sensitivity labels for Microsoft Teams, Entra groups and SharePoint sites (controlling external sharing and unmanaged device access), and use auto-labelling for regulated sensitive info types.
+
 ## Architecture diagram
 
 ```mermaid
