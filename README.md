@@ -8,6 +8,13 @@ Microsoft's guidance on what to log is spread across hundreds of product pages. 
 
 > **Disclaimer.** This is community guidance, not official Microsoft documentation. Microsoft changes table names, connectors and licensing often. Always check the linked Microsoft Learn pages before you rely on anything here, and test in a non-production workspace first.
 
+## Part of the Microsoft security logging stack
+
+1. [microsoft-security-logging-guide](https://github.com/jusso-dev/microsoft-security-logging-guide) (you are here): What to log from Microsoft products into Microsoft Sentinel and Microsoft Defender XDR, with table mappings, connector setup, cost queries and recommended security configurations.
+2. [soc-ready-logging](https://github.com/jusso-dev/soc-ready-logging): OWASP and ASD ACSC aligned security logging guidance, schemas, language wrappers, starter SIEM detections and AI agent skills for custom software vendors.
+3. [Bower](https://github.com/jusso-dev/Bower): Self-hosted security telemetry normaliser and Australian privacy gateway with default-deny event selection, host-side PII and secret redaction, tamper-evident buffering and signed Sentinel arrival proof.
+4. [blueboard](https://github.com/jusso-dev/blueboard) and [crosswire](https://github.com/jusso-dev/crosswire): Human-gated AI agent tooling for Microsoft Defender XDR and Microsoft Sentinel SOC operations (`blueboard` is a shared incident board where agents and analysts detect, enrich, contain and eradicate together; `crosswire` is an open-source SOC kit using GitHub Copilot and Squad agents for hunting, threat intelligence comparison and gated response).
+
 ## Start here: what are you trying to do?
 
 Pick your goal below to jump straight to the right page (or open the full [Start here decision guide](docs/start-here.md)):

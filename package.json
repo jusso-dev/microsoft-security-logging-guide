@@ -1,5 +1,6 @@
 {
   "name": "microsoft-security-logging-guide",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Developer tooling for the Microsoft security logging guide. The site build is Python (MkDocs); this package exists for the Mermaid render check.",
