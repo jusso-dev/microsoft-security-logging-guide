@@ -2,3 +2,8 @@
 node_modules/
 site-src/
 _site/
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+CLAUDE.local.md
