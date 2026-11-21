@@ -1,0 +1,37 @@
+# markdownlint-cli2 configuration
+# Rules: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+config:
+  default: true
+
+  # Long lines are fine: tables and KQL run long by design.
+  MD013: false
+
+  # Allow duplicate headings in different subsections (for example per-product
+  # rule tables that repeat a column layout), but not within the same parent.
+  MD024:
+    siblings_only: true
+
+  # Mermaid and KQL fences sit close to their explanation text in a few
+  # legacy spots; keep the rule but we aim to fix real cases.
+  MD031: true
+
+  # The guides use HTML line breaks inside Mermaid labels only (code fences),
+  # which this rule does not inspect. Keep inline HTML checks on for prose.
+  MD033:
+    allowed_elements: [br]
+
+  # Ordered lists: keep the "1. 2. 3." style used in setup steps.
+  MD029:
+    style: ordered
+
+  # This repo uses single-spaced cells with short "|---|" delimiter rows,
+  # the common GitHub style. MD060's aligned, compact and tight styles cannot
+  # express that mix, and restyling every table would be churn with no
+  # rendering benefit.
+  MD060: false
+
+ignores:
+  - node_modules
+  - _site
+  - site-src
+  - .github

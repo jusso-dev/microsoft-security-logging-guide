@@ -1,0 +1,17 @@
+# lychee exclude patterns, one regex per line, matched against each URL.
+# Wildcard hostnames used as illustrative examples in the guides.
+^\*\.api\.powerplatformusercontent\.com
+
+# Placeholder hostnames in KQL and configuration examples.
+^https?://<.*>
+\.example\.com$
+
+# Local development addresses.
+^https?://(localhost|127\.0\.0\.1)
+
+# Placeholder example URLs in TEMPLATE.md.
+^https://learn\.microsoft\.com/\.\.\.$
+
+# Login-gated Microsoft admin portals and Azure Marketplace pages that return 403 to automated link checkers.
+^https://(entra|intune|security|purview|portal\.azure|azuremarketplace|marketplace)\.microsoft\.com
+^https://go\.microsoft\.com/fwlink/\?linkid=2109431$

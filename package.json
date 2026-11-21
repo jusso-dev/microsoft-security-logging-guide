@@ -1,0 +1,19 @@
+{
+  "name": "microsoft-security-logging-guide",
+  "private": true,
+  "type": "module",
+  "description": "Developer tooling for the Microsoft security logging guide. The site build is Python (MkDocs); this package exists for the Mermaid render check.",
+  "scripts": {
+    "check:style": "node scripts/check-style.mjs",
+    "check:mermaid": "node scripts/check-mermaid.mjs",
+    "check:markdown": "markdownlint-cli2 \"**/*.md\"",
+    "check": "npm run check:markdown && npm run check:style && npm run check:mermaid"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.0",
+    "markdownlint-cli2": "^0.24.2"
+  },
+  "allowScripts": {
+    "puppeteer@25.18.1": true
+  }
+}

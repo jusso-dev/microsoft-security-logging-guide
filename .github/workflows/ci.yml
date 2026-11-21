@@ -1,0 +1,139 @@
+name: CI
+
+# Checks that run on every pull request and push to main:
+#   markdownlint - Markdown structure
+#   style        - CONTRIBUTING.md writing style (em dashes, emojis, old names)
+#   mermaid      - every Mermaid diagram renders
+#   links        - every external link resolves (weekly on main, and on PRs)
+# A scheduled link-check failure opens or updates a tracking issue.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "20 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  markdownlint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npx --yes markdownlint-cli2@0.24.2 "**/*.md"
+
+  style:
+    name: Style check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: node scripts/check-style.mjs
+
+  mermaid:
+    name: Mermaid render check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node scripts/check-mermaid.mjs
+
+  links:
+    name: Link check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run lychee
+        uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          # Fail the job on broken links. Exclusions for wildcard and
+          # placeholder hostnames live in .lycheeignore.
+          args: >-
+            --no-progress
+            --max-retries 2
+            --exclude-file .lycheeignore
+            --exclude-loopback
+            --exclude-private
+            './**/*.md'
+          format: markdown
+          output: lychee-report.md
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Upload report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lychee-report
+          path: lychee-report.md
+      - name: Open or update the broken-links issue
+        if: ${{ failure() && github.event_name == 'schedule' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const title = "CI: broken links detected";
+            const body =
+              "The weekly link check on main found broken links.\n\n" +
+              `Run: ${runUrl}\n\n` +
+              "The full report is attached to the run as the `lychee-report` artifact. " +
+              "Once the links are fixed, close this issue.";
+
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: "open",
+            });
+            const existing = issues.find((i) => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body,
+              });
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `Still failing on ${new Date().toISOString().slice(0, 10)}: ${runUrl}`,
+              });
+              core.info(`Updated issue #${existing.number}`);
+            } else {
+              const labels = ["ci"];
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: "ci" });
+              } catch {
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: "ci",
+                  color: "D4C5F9",
+                  description: "CI maintenance work",
+                });
+              }
+              const created = await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels,
+              });
+              core.info(`Opened issue #${created.data.number}`);
+            }

@@ -1,0 +1,127 @@
+# MkDocs config for the GitHub Pages build.
+# The docs tree is generated into site-src/ by scripts/build_pages.py,
+# which renames every folder's README.md to index.md and rewrites links.
+# Build locally with:
+#   pip install "mkdocs-material==9.8.2"
+#   python scripts/build_pages.py && mkdocs build --strict
+
+site_name: Microsoft security logging guide
+site_description: >-
+  Practical, product-by-product guidance on getting high-value security logs
+  from Microsoft products into Microsoft Sentinel and Microsoft Defender XDR.
+site_url: https://jusso-dev.github.io/microsoft-security-logging-guide/
+repo_url: https://github.com/jusso-dev/microsoft-security-logging-guide
+repo_name: jusso-dev/microsoft-security-logging-guide
+
+docs_dir: site-src
+site_dir: _site
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - search.highlight
+    - search.share
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  # Material for MkDocs ships and initialises Mermaid for the custom fence
+  # below, so the guides' ```mermaid blocks render on the site.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Cross-cutting docs:
+      - Architecture: docs/architecture.md
+      - Prioritisation: docs/prioritisation.md
+      - Defender XDR vs Sentinel: docs/defender-xdr-vs-sentinel.md
+      - Data lake tiering: docs/data-lake-tiering.md
+      - Cost estimation: docs/cost-estimation.md
+      - Sentinel health and audit: docs/sentinel-health.md
+      - Watchlists and enrichment: docs/watchlists.md
+      - Validation query pack: queries/validation/index.md
+      - Cost query pack: queries/cost/index.md
+  - Identity:
+      - Overview: identity/index.md
+      - Microsoft Entra ID (sign-in, audit and Graph activity logs): identity/entra-id/index.md
+      - Microsoft Entra ID Protection (risk detections): identity/entra-id-protection/index.md
+      - Microsoft Defender for Identity: identity/defender-for-identity/index.md
+      - Active Directory Domain Services (on-premises): identity/active-directory-on-prem/index.md
+      - Active Directory Federation Services (AD FS): identity/adfs/index.md
+      - Microsoft Entra Internet Access and Private Access (Global Secure Access): identity/entra-global-secure-access/index.md
+  - Endpoint:
+      - Overview: endpoint/index.md
+      - Microsoft Defender for Endpoint: endpoint/defender-for-endpoint/index.md
+      - Windows security event logs (clients): endpoint/windows-security-events/index.md
+      - Microsoft Intune: endpoint/intune/index.md
+  - Email and collaboration:
+      - Overview: email-collab/index.md
+      - Exchange Online: email-collab/exchange-online/index.md
+      - Microsoft Defender for Office 365: email-collab/defender-for-office-365/index.md
+      - SharePoint Online and OneDrive: email-collab/sharepoint-onedrive/index.md
+      - Microsoft Teams: email-collab/teams/index.md
+      - Microsoft Purview unified audit log: email-collab/purview-unified-audit/index.md
+  - Cloud apps:
+      - Overview: cloud-apps/index.md
+      - Microsoft Defender for Cloud Apps: cloud-apps/defender-for-cloud-apps/index.md
+  - Azure:
+      - Overview: azure/index.md
+      - Azure Activity (control plane): azure/azure-activity/index.md
+      - Microsoft Defender for Cloud: azure/defender-for-cloud/index.md
+      - Azure Key Vault: azure/key-vault/index.md
+      - Azure Storage: azure/storage/index.md
+      - Azure SQL Database and Managed Instance: azure/azure-sql/index.md
+      - Azure Kubernetes Service (AKS): azure/aks/index.md
+      - Azure networking (VNet flow logs, Azure Firewall, WAF, DNS): azure/network-nsg-flow-firewall/index.md
+      - Azure App Service and Azure Functions: azure/app-service-functions/index.md
+  - Data security:
+      - Overview: data-security/index.md
+      - Microsoft Purview Data Loss Prevention: data-security/purview-dlp/index.md
+      - Microsoft Purview Insider Risk Management: data-security/insider-risk/index.md
+      - Microsoft Purview Information Protection: data-security/information-protection/index.md
+  - Business applications:
+      - Overview: business-apps/index.md
+      - Power Platform (Power Apps, Power Automate, admin): business-apps/power-platform/index.md
+      - Microsoft Dataverse and Dynamics 365: business-apps/dataverse-dynamics-365/index.md
+      - Microsoft Copilot Studio: business-apps/copilot-studio/index.md
+  - AI:
+      - Overview: ai/index.md
+      - Microsoft 365 Copilot: ai/microsoft-365-copilot/index.md
+      - Microsoft Foundry (formerly Azure AI Foundry) and Azure OpenAI: ai/azure-openai-ai-foundry/index.md
+  - DevOps:
+      - Overview: devops/index.md
+      - GitHub (Enterprise Cloud): devops/github/index.md
+      - Azure DevOps: devops/azure-devops/index.md
+  - Servers:
+      - Overview: servers/index.md
+      - Windows Server: servers/windows-server/index.md
+      - Linux (Syslog, CEF and auditd): servers/linux-syslog/index.md
+      - SQL Server (on-premises and IaaS): servers/sql-server/index.md
+  - Multi-cloud (optional):
+      - Overview: multi-cloud/index.md
+      - Amazon Web Services (optional): multi-cloud/aws/index.md
+      - Google Cloud (optional): multi-cloud/google-cloud/index.md
+  - Template: TEMPLATE.md
+  - Contributing: CONTRIBUTING.md

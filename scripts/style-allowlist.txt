@@ -1,0 +1,14 @@
+# Style check allow-list, one JavaScript regex per line.
+# A line is exempt when the regex matches the line text or "path:line text".
+# Keep this short: prefer renaming to the current product name, or putting
+# the old name on a line with rename context ("formerly", "renamed" and so on).
+
+# The Power Automate "Azure AD" connector is still officially named that.
+Azure AD connection
+
+# Sentinel's SecurityAlert.ProductName still emits this literal string for Entra ID Protection.
+ProductName =~ "Azure Active Directory Identity Protection"
+
+# Any line that quotes the official title of a linked Microsoft source is
+# exempt automatically (learn.microsoft.com, techcommunity.microsoft.com,
+# Azure/Azure-Sentinel on GitHub); no need to list those here.
