@@ -1,0 +1,280 @@
+name: Nightly guidance refresh
+
+# Checks Microsoft Learn docs, Azure-Sentinel Content Hub solutions, links and
+# guide staleness every night. When upstream drift is found, Claude Code updates
+# the affected guides, runs the full CI + MkDocs gate, and pushes directly to
+# main if every check passes (then deploys GitHub Pages). If any check fails,
+# changes are saved to a draft PR instead of touching main.
+#
+# Required repository secret:
+#   ANTHROPIC_API_KEY (Settings > Secrets and variables > Actions)
+
+on:
+  schedule:
+    # 17:30 UTC daily (04:30 AEDT / 03:30 AEST)
+    - cron: "30 17 * * *"
+  workflow_dispatch:
+    inputs:
+      max_guides:
+        description: "Maximum number of guides/docs to refresh in this run"
+        required: false
+        default: "8"
+      target_files:
+        description: "Optional comma-separated file paths to force-refresh (e.g. identity/entra-id/README.md)"
+        required: false
+        default: ""
+      force:
+        description: "Run Claude even if no upstream drift was detected"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: nightly-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Detect drift and refresh guides
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      pushed: ${{ steps.land.outputs.pushed }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install Node tooling
+        run: npm ci
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install MkDocs Material
+        run: pip install "mkdocs-material==9.8.2"
+
+      - name: Pre-flight link check
+        uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          args: >-
+            --no-progress
+            --max-retries 2
+            --exclude-file .lycheeignore
+            --exclude-loopback
+            --exclude-private
+            --exclude-path node_modules
+            --exclude-path site-src
+            --exclude-path _site
+            --exclude-path .github
+            './**/*.md'
+          format: json
+          output: /tmp/lychee-pre.json
+          fail: false
+          jobSummary: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Check upstream drift
+        id: drift
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MAX_GUIDES: ${{ inputs.max_guides || '8' }}
+          TARGET_FILES: ${{ inputs.target_files || '' }}
+        run: |
+          ARGS=(
+            "--max-guides" "$MAX_GUIDES"
+            "--lychee-json" "/tmp/lychee-pre.json"
+            "--md-out" "/tmp/drift-report.md"
+            "--json-out" "/tmp/drift-report.json"
+          )
+          if [ -n "$TARGET_FILES" ]; then
+            ARGS+=("--target-files" "$TARGET_FILES")
+          fi
+          node scripts/check-drift.mjs "${ARGS[@]}"
+          cat /tmp/drift-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check Anthropic API key
+        id: auth
+        if: ${{ steps.drift.outputs.has_drift == 'true' || inputs.force == true }}
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not configured. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Update drifted guides with Claude Code
+        if: ${{ steps.drift.outputs.has_drift == 'true' || inputs.force == true }}
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          claude_args: "--max-turns 40 --allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch"
+          prompt: |
+            You are maintaining the `microsoft-security-logging-guide` repository during its nightly automated refresh.
+
+            Today's date (UTC) is available via `date -u "+%d %b %Y"`.
+
+            1. Read `/tmp/drift-report.md`, `CONTRIBUTING.md`, and `TEMPLATE.md`.
+            2. For every file listed under "Files selected for refresh" in `/tmp/drift-report.md`:
+               - Fetch and inspect each updated Microsoft Learn page, broken URL, and recent `Azure/Azure-Sentinel` solution commit listed for that file.
+               - Update the guide ONLY with verified facts from official Microsoft Learn pages or `Azure/Azure-Sentinel` (table names, connector names, Content Hub solutions, out-of-box analytic rules, licensing, Defender portal navigation, deprecations, and working replacement URLs for any broken links).
+               - Update `Last verified: DD Mon YYYY` (both in the top blockquote and the `## Last verified` section) to today's date once you have verified the file.
+               - If a table name, default tier, or connector changed, keep `docs/prioritisation.md`, `docs/data-lake-tiering.md`, and the matching `queries/validation/*.kql` file in sync.
+            3. Follow `CONTRIBUTING.md` strictly:
+               - Plain Australian English, short sentences, contractions fine.
+               - No em dashes, no emojis, no banned old product names unless with rename context or on a linked official title line.
+               - Keep `TEMPLATE.md` section order and Mermaid `flowchart LR` syntax valid.
+               - Mark unconfirmed KQL lines with `// ASSUMPTION:`.
+            4. Before finishing, run `npm run check` (`markdownlint-cli2`, `check-style.mjs`, `check-mermaid.mjs`) and fix every error until it exits 0.
+            5. Do NOT run `git commit` or `git push`. Leave your verified edits in the working tree so the workflow's independent CI gate can validate and push them.
+
+      - name: Gate 1 - Markdown lint
+        id: gate_md
+        if: ${{ steps.drift.outputs.has_drift == 'true' || inputs.force == true }}
+        continue-on-error: true
+        run: npx --yes markdownlint-cli2@0.24.2 "**/*.md"
+
+      - name: Gate 2 - Style check
+        id: gate_style
+        if: ${{ steps.drift.outputs.has_drift == 'true' || inputs.force == true }}
+        continue-on-error: true
+        run: node scripts/check-style.mjs
+
+      - name: Gate 3 - Mermaid render check
+        id: gate_mermaid
+        if: ${{ steps.drift.outputs.has_drift == 'true' || inputs.force == true }}
+        continue-on-error: true
+        run: node scripts/check-mermaid.mjs
+
+      - name: Gate 4 - Link check
+        id: gate_links
+        if: ${{ steps.drift.outputs.has_drift == 'true' || inputs.force == true }}
+        continue-on-error: true
+        uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          args: >-
+            --no-progress
+            --max-retries 2
+            --exclude-file .lycheeignore
+            --exclude-loopback
+            --exclude-private
+            --exclude-path node_modules
+            --exclude-path site-src
+            --exclude-path _site
+            --exclude-path .github
+            './**/*.md'
+          format: markdown
+          output: /tmp/lychee-post.md
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Gate 5 - MkDocs strict build
+        id: gate_docs
+        if: ${{ steps.drift.outputs.has_drift == 'true' || inputs.force == true }}
+        continue-on-error: true
+        run: |
+          python scripts/build_pages.py
+          mkdocs build --strict
+
+      - name: Push verified updates to main (or save draft PR on CI failure)
+        id: land
+        if: ${{ steps.drift.outputs.has_drift == 'true' || inputs.force == true }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GATE_MD: ${{ steps.gate_md.outcome }}
+          GATE_STYLE: ${{ steps.gate_style.outcome }}
+          GATE_MERMAID: ${{ steps.gate_mermaid.outcome }}
+          GATE_LINKS: ${{ steps.gate_links.outcome }}
+          GATE_DOCS: ${{ steps.gate_docs.outcome }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No file changes produced."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          TODAY=$(date -u +%Y-%m-%d)
+          CHANGED=$(git status --short | awk '{print $2}' | tr '\n' ' ')
+
+          if [ "$GATE_MD" = "success" ] && \
+             [ "$GATE_STYLE" = "success" ] && \
+             [ "$GATE_MERMAID" = "success" ] && \
+             [ "$GATE_LINKS" = "success" ] && \
+             [ "$GATE_DOCS" = "success" ]; then
+            git add -A
+            git commit -m "Nightly guidance refresh (${TODAY})" -m "Updated files: ${CHANGED}"
+            git pull --rebase origin main
+            git push origin main
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+            echo "All CI gates passed. Pushed directly to main."
+          else
+            BRANCH="nightly-refresh/${TODAY}-${GITHUB_RUN_NUMBER}"
+            git checkout -b "$BRANCH"
+            git add -A
+            git commit -m "Nightly guidance refresh (${TODAY}) [CI gate failed]"
+            git push origin "$BRANCH"
+            gh pr create --draft --base main --head "$BRANCH" \
+              --title "Nightly guidance refresh (${TODAY}) - needs review" \
+              --body "$(cat <<EOF
+          Automated nightly refresh ran on ${TODAY}, but one or more CI gates failed so changes were NOT pushed to \`main\`.
+
+          - Markdown lint: \`${GATE_MD}\`
+          - Style check: \`${GATE_STYLE}\`
+          - Mermaid check: \`${GATE_MERMAID}\`
+          - Link check: \`${GATE_LINKS}\`
+          - MkDocs strict build: \`${GATE_DOCS}\`
+
+          Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+          )"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            echo "::error::One or more CI gates failed; saved changes to draft PR on branch ${BRANCH}."
+            exit 1
+          fi
+
+  deploy-pages:
+    name: Deploy updated GitHub Pages
+    needs: refresh
+    if: ${{ needs.refresh.outputs.pushed == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install MkDocs Material
+        run: pip install "mkdocs-material==9.8.2"
+      - name: Build site
+        run: |
+          python scripts/build_pages.py
+          mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

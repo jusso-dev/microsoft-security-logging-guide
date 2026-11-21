@@ -7,6 +7,7 @@
     "check:style": "node scripts/check-style.mjs",
     "check:mermaid": "node scripts/check-mermaid.mjs",
     "check:markdown": "markdownlint-cli2 \"**/*.md\"",
+    "check:drift": "node scripts/check-drift.mjs",
     "check": "npm run check:markdown && npm run check:style && npm run check:mermaid"
   },
   "devDependencies": {
