@@ -1,0 +1,16 @@
+// 06. Commitment tier sizing: daily billable GB distribution over 30 complete days
+// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.
+// Compare DailyAvgGB, P50, P90 and P95 against regional Sentinel pay-as-you-go vs 100 GB/day+ commitment tiers.
+Usage
+| where StartTime >= startofday(ago(31d)) and EndTime < startofday(now())
+| where IsBillable == true
+| summarize DailyBillableGB = sum(Quantity) / 1000.0 by Day = bin(StartTime, 1d)
+| summarize
+    DaysMeasured = count(),
+    MinGB = round(min(DailyBillableGB), 2),
+    AvgGB = round(avg(DailyBillableGB), 2),
+    P50_GB = round(percentile(DailyBillableGB, 50), 2),
+    P90_GB = round(percentile(DailyBillableGB, 90), 2),
+    P95_GB = round(percentile(DailyBillableGB, 95), 2),
+    MaxGB = round(max(DailyBillableGB), 2),
+    Total30dGB = round(sum(DailyBillableGB), 2)

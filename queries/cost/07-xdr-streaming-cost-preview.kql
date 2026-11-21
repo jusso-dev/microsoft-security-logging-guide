@@ -1,0 +1,18 @@
+// 07. Pre-streaming cost preview for Defender XDR advanced hunting tables
+// Run in: Defender portal > Investigation & response > Advanced hunting (Defender XDR scope).
+// Estimates daily GB BEFORE you stream raw Defender XDR tables into a Sentinel workspace.
+// ASSUMPTION: estimate_data_size(*) approximates uncompressed JSON bytes; actual Sentinel billed bytes
+// can differ slightly due to schema serialisation overhead. Run over 24h to stay within query limits.
+union withsource=Table isfuzzy=true
+    DeviceProcessEvents, DeviceNetworkEvents, DeviceFileEvents, DeviceEvents,
+    DeviceLogonEvents, DeviceRegistryEvents, DeviceImageLoadEvents, DeviceInfo,
+    EmailEvents, EmailUrlInfo, EmailAttachmentInfo, EmailPostDeliveryEvents, UrlClickEvents,
+    IdentityLogonEvents, IdentityQueryEvents, IdentityDirectoryEvents,
+    CloudAppEvents, EntraIdSignInEvents, EntraIdSpnSignInEvents
+| where Timestamp > ago(1d)
+| summarize
+    Rows24h = count(),
+    EstDailyGB = round(sum(estimate_data_size(*)) / 1e9, 3),
+    EstMonthlyGB = round(sum(estimate_data_size(*)) * 30.0 / 1e9, 2)
+    by Table
+| order by EstDailyGB desc

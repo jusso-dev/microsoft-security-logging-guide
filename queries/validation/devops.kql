@@ -1,0 +1,36 @@
+// Validation query pack: DevOps
+// Checks freshness (Rows, Latest, AgeHours) and 7-day volume (GB) for documented DevOps tables.
+// Run in: Defender portal > Investigation & response > Advanced hunting (Sentinel workspace selected) or Log Analytics Logs.
+// Note: Enable only one GitHub audit table (V3 or V2) and one Azure DevOps table (ADOAuditLogs_CL or AzureDevOpsAuditing) per org to avoid duplicate billing.
+let ExpectedTables = datatable(Table: string, MaxSilentHours: int) [
+    "GitHubAuditLogsV3_CL", 24,
+    "GitHubAuditLogsV2_CL", 24,
+    "GitHubAdvancedSecurityAlerts_CL", 168,
+    "ADOAuditLogs_CL", 24,
+    "AzureDevOpsAuditing", 24,
+    "SecurityAlert", 24
+];
+let Freshness = union withsource=Table isfuzzy=true
+    GitHubAuditLogsV3_CL, GitHubAuditLogsV2_CL, GitHubAdvancedSecurityAlerts_CL, ADOAuditLogs_CL, AzureDevOpsAuditing, SecurityAlert
+    | where TimeGenerated > ago(7d)
+    | summarize Rows24h = countif(TimeGenerated > ago(24h)), Rows7d = count(), Latest = max(TimeGenerated) by Table;
+let Volume = Usage
+    | where TimeGenerated > ago(7d)
+    | where DataType in ("GitHubAuditLogsV3_CL", "GitHubAuditLogsV2_CL", "GitHubAdvancedSecurityAlerts_CL", "ADOAuditLogs_CL", "AzureDevOpsAuditing", "SecurityAlert")
+    | summarize GB7d = round(sum(Quantity) / 1000.0, 3), DailyAvgGB = round(sum(Quantity) / 1000.0 / 7.0, 3) by Table = DataType;
+ExpectedTables
+| join kind=leftouter Freshness on Table
+| join kind=leftouter Volume on Table
+| extend
+    Rows24h = coalesce(Rows24h, 0),
+    Rows7d = coalesce(Rows7d, 0),
+    AgeHours = iff(isnotempty(Latest), round((now() - Latest) / 1h, 1), real(null)),
+    GB7d = coalesce(GB7d, 0.0),
+    DailyAvgGB = coalesce(DailyAvgGB, 0.0)
+| extend Status = case(
+    Rows7d == 0, "NO_DATA_7D",
+    AgeHours > MaxSilentHours, "STALE",
+    "OK"
+)
+| project Table, Status, Rows24h, Rows7d, Latest, AgeHours, MaxSilentHours, DailyAvgGB, GB7d
+| order by Status asc, Table asc

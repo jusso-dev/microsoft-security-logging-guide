@@ -1,0 +1,19 @@
+// 01. Billable vs free GB per table over the last 30 complete days
+// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.
+// Note: Azure Sentinel billing measures GB in decimal (10^9 bytes), so Usage.Quantity (MB) divides by 1000.0.
+let lookback = 30d;
+let raw = Usage
+    | where StartTime >= startofday(ago(lookback + 1d)) and EndTime < startofday(now())
+    | summarize
+        BillableGB = sumif(Quantity, IsBillable == true) / 1000.0,
+        FreeGB = sumif(Quantity, IsBillable == false) / 1000.0
+        by DataType;
+let totalBillable = toscalar(raw | summarize sum(BillableGB));
+raw
+| extend
+    DailyAvgBillableGB = round(BillableGB / 30.0, 2),
+    BillableGB = round(BillableGB, 2),
+    FreeGB = round(FreeGB, 2),
+    SharePct = iff(totalBillable > 0, round(BillableGB * 100.0 / totalBillable, 1), 0.0)
+| project DataType, DailyAvgBillableGB, BillableGB, FreeGB, SharePct
+| order by BillableGB desc

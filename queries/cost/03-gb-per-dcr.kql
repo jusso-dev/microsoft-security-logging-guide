@@ -1,0 +1,23 @@
+// 03. Estimated billable GB by Azure resource / connector source over the last 7 days
+// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.
+// Uses the _BilledSize system column across high-volume tables to pinpoint which resource or DCR drives spend.
+// ASSUMPTION: Not every workspace has all tables below; isfuzzy=true skips missing tables.
+union withsource=Table isfuzzy=true
+    SecurityEvent, WindowsEvent, Syslog, CommonSecurityLog, AzureDiagnostics,
+    StorageBlobLogs, AKSAudit, AKSAuditAdmin, AZFWNetworkRule, AZFWApplicationRule,
+    SigninLogs, AADNonInteractiveUserSignInLogs, MicrosoftGraphActivityLogs
+| where TimeGenerated > ago(7d)
+| where _IsBillable == true
+| extend Source = coalesce(
+    tostring(column_ifexists("_ResourceId", "")),
+    tostring(column_ifexists("Computer", "")),
+    tostring(column_ifexists("DeviceVendor", "")),
+    "Tenant-scoped"
+)
+| summarize
+    Events = count(),
+    GB7d = round(sum(_BilledSize) / 1e9, 3),
+    EstDailyGB = round(sum(_BilledSize) / 1e9 / 7.0, 3)
+    by Table, Source
+| order by GB7d desc
+| take 50

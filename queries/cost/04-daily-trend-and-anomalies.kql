@@ -1,0 +1,13 @@
+// 04. Daily billable GB trend over 30 days with anomaly detection
+// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.
+// Flags sudden ingestion spikes caused by runaway diagnostic settings, misconfigured DCRs or attack floods.
+let start = startofday(ago(31d));
+let end = startofday(now());
+Usage
+| where StartTime >= start and EndTime < end
+| where IsBillable == true
+| make-series DailyGB = round(sum(Quantity) / 1000.0, 2) default=0 on StartTime from start to end step 1d
+| extend (Anomalies, Score, Baseline) = series_decompose_anomalies(DailyGB, 1.5, -1, 'linefit')
+| mv-expand StartTime to typeof(datetime), DailyGB to typeof(real), Baseline to typeof(real), Anomalies to typeof(real), Score to typeof(real)
+| project Day = format_datetime(StartTime, "yyyy-MM-dd"), DailyGB, BaselineGB = round(Baseline, 2), AnomalyFlag = Anomalies, Score = round(Score, 2)
+| order by Day desc

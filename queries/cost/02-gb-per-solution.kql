@@ -1,0 +1,11 @@
+// 02. Billable GB by Sentinel solution and data type over the last 30 complete days
+// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.
+Usage
+| where StartTime >= startofday(ago(31d)) and EndTime < startofday(now())
+| where IsBillable == true
+| extend SolutionGroup = iff(Solution == "SecurityInsights", "MicrosoftSentinel", Solution)
+| summarize
+    BillableGB30d = round(sum(Quantity) / 1000.0, 2),
+    DailyAvgGB = round(sum(Quantity) / 1000.0 / 30.0, 2)
+    by SolutionGroup, DataType
+| order by BillableGB30d desc

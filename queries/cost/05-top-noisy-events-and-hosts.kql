@@ -1,0 +1,40 @@
+// 05. Top noisy Windows Event IDs, hosts, and AzureDiagnostics categories over 7 days
+// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.
+// Run each section separately or unioned to decide what to filter in DCRs or move to the Data lake tier.
+
+// 5a. Top noisy Windows SecurityEvent IDs by billed GB
+SecurityEvent
+| where TimeGenerated > ago(7d)
+| where _IsBillable == true
+| summarize
+    Events = count(),
+    GB7d = round(sum(_BilledSize) / 1e9, 3),
+    UniqueHosts = dcount(Computer)
+    by EventID, Activity
+| order by GB7d desc
+| take 20;
+
+// 5b. Top noisy accounts in SecurityEvent (often service accounts or scanners)
+SecurityEvent
+| where TimeGenerated > ago(7d)
+| where _IsBillable == true
+| where isnotempty(Account)
+| summarize
+    Events = count(),
+    GB7d = round(sum(_BilledSize) / 1e9, 3),
+    EventIDs = make_set(EventID, 10)
+    by Account
+| order by GB7d desc
+| take 20;
+
+// 5c. Top noisy AzureDiagnostics resource types and categories
+AzureDiagnostics
+| where TimeGenerated > ago(7d)
+| where _IsBillable == true
+| summarize
+    Events = count(),
+    GB7d = round(sum(_BilledSize) / 1e9, 3),
+    Resources = dcount(_ResourceId)
+    by ResourceType, Category
+| order by GB7d desc
+| take 20

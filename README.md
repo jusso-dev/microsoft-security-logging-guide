@@ -26,7 +26,8 @@ The order of onboarding follows Microsoft's own advice (free Microsoft sources f
 ## Repository structure
 
 ```text
-docs/              Architecture, prioritisation and cross-cutting guidance
+docs/              Architecture, prioritisation, tiering, cost, health and watchlists
+queries/           Validation and cost estimation KQL packs
 TEMPLATE.md        The structure every product guide follows
 identity/          Entra ID, ID Protection, Defender for Identity, AD DS, AD FS, Global Secure Access
 endpoint/          Defender for Endpoint, Windows security events, Intune
