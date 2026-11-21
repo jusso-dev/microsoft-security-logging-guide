@@ -124,6 +124,12 @@ These are the closest things to a single source of truth, and this repo builds o
 - Microsoft Learn, [Which logs to ingest into the Microsoft Sentinel data lake](https://learn.microsoft.com/en-us/azure/sentinel/datalake/sentinel-lake-log-ingestion-guidance)
 - Microsoft Zero Trust workshop, [Integrate all Entra logs into SIEM](https://microsoft.github.io/zerotrustassessment/docs/workshop-guidance/identity/RMI_074)
 
+## Keeping it current
+
+This guide is checked automatically every night (`17:30 UTC`) by a GitHub Actions workflow. It scans every linked Microsoft Learn page for newer `updated_at` or `ms.date` timestamps, checks linked `Azure/Azure-Sentinel` Content Hub solution folders for new commits, checks for broken links, and flags guides last verified more than six months ago. When drift is found, affected guides are updated automatically and only pushed to `main` (and published to [GitHub Pages](https://jusso-dev.github.io/microsoft-security-logging-guide/)) if Markdown lint, writing style, Mermaid rendering, link checking and MkDocs strict build checks all pass.
+
+See [CHANGELOG.md](CHANGELOG.md) for a history of updates.
+
 ## Contributing
 
 Contributions are very welcome, especially from people running these connectors in production. Read [CONTRIBUTING.md](CONTRIBUTING.md), pick an open issue, and copy [TEMPLATE.md](TEMPLATE.md) when you start a guide. Corrections are just as valuable as new guides, so if a table has been renamed or a link has moved, open a correction issue.
