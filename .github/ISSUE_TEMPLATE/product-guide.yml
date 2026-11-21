@@ -1,0 +1,28 @@
+name: Product guide
+description: Propose or build a guide for a Microsoft product
+title: "Guide: <product name>"
+labels: ["type:guide"]
+body:
+  - type: input
+    id: product
+    attributes:
+      label: Product
+      description: Current Microsoft product name
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [identity, endpoint, email-collab, cloud-apps, azure, data-security, business-apps, ai, devops, servers, multi-cloud]
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Log sources you know of
+      description: Table names, connectors and links to Microsoft docs
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else

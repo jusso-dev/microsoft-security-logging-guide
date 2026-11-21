@@ -1,0 +1,25 @@
+name: Correction
+description: Something is wrong, renamed, retired or a link is broken
+title: "Correction: <what is wrong>"
+labels: ["type:correction"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: Path or link to the guide
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: Link to the Microsoft documentation or announcement that shows the correct information
+    validations:
+      required: true
