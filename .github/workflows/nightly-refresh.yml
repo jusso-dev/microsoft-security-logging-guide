@@ -18,7 +18,11 @@ on:
       max_guides:
         description: "Maximum number of guides/docs to refresh in this run"
         required: false
-        default: "8"
+        default: "5"
+      model:
+        description: "Claude model alias or ID (defaults to haiku for lowest cost)"
+        required: false
+        default: "haiku"
       target_files:
         description: "Optional comma-separated file paths to force-refresh (e.g. identity/entra-id/README.md)"
         required: false
@@ -91,7 +95,7 @@ jobs:
         id: drift
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          MAX_GUIDES: ${{ inputs.max_guides || '8' }}
+          MAX_GUIDES: ${{ inputs.max_guides || '5' }}
           TARGET_FILES: ${{ inputs.target_files || '' }}
         run: |
           ARGS=(
@@ -123,7 +127,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
-          claude_args: "--max-turns 40 --allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch"
+          claude_args: "--model ${{ inputs.model || 'haiku' }} --max-turns 25 --allowedTools Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch"
           prompt: |
             You are maintaining the `microsoft-security-logging-guide` repository during its nightly automated refresh.
 
