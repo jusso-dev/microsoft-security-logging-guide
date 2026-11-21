@@ -139,7 +139,7 @@ jobs:
                - Update the guide ONLY with verified facts from official Microsoft Learn pages or `Azure/Azure-Sentinel` (table names, connector names, Content Hub solutions, out-of-box analytic rules, licensing, Defender portal navigation, deprecations, and working replacement URLs for any broken links).
                - Update `Last verified: DD Mon YYYY` (both in the top blockquote and the `## Last verified` section) to today's date once you have verified the file.
                - If a table name, default tier, or connector changed, keep `docs/prioritisation.md`, `docs/data-lake-tiering.md`, and the matching `queries/validation/*.kql` file in sync.
-            3. If you updated any guide or doc, add a concise dated entry under a `## <DD Mon YYYY>` heading at the top of `CHANGELOG.md` (right below the intro paragraph) summarising which guides changed and what changed upstream.
+            3. If you updated any guide or doc, add a concise dated entry under `## Unreleased` (under a `### Changed` subsection, creating it if missing) in `CHANGELOG.md` summarising which guides changed and what changed upstream.
             4. Follow `CONTRIBUTING.md` strictly:
                - Plain Australian English, short sentences, contractions fine.
                - No em dashes, no emojis, no banned old product names unless with rename context or on a linked official title line.
