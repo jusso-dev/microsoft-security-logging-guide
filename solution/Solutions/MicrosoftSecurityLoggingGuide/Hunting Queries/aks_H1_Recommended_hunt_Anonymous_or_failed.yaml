@@ -1,0 +1,33 @@
+id: 79d94a47-7e2c-54e3-8016-37d557bd37a9
+name: 'Azure Kubernetes Service (AKS) - Recommended hunt: Anonymous or failed API authentication spikes'
+description: |
+  - **Recommended hunt: Anonymous or failed API authentication spikes.** Hunt AKSAuditAdmin for 401 and 403 bursts indicating probing or misconfigured/stolen service account tokens: Source guide: azure/aks/README.md.
+requiredDataConnectors:
+  - connectorId: AzureKubernetesServices
+    dataTypes:
+      - AKSAuditAdmin
+tactics:
+  - PrivilegeEscalation
+query: |
+  AKSAuditAdmin
+  | where TimeGenerated > ago(7d)
+  | extend ResponseCode = toint(ResponseStatus.code), Username = tostring(User.username)
+  | where ResponseCode in (401, 403)
+  | summarize Attempts = count(), Targets = make_set(tostring(ObjectRef.resource), 10)
+      by Username, SourceIp = tostring(SourceIps[0]), ResponseCode, Cluster = _ResourceId
+  | where Attempts >= 20
+  | order by Attempts desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: Username
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Cluster
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIp
+version: 1.0.0

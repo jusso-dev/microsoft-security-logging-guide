@@ -1,0 +1,49 @@
+id: 2032a832-3f1f-58fa-aa95-2001986664d0
+name: 'Purview Data Loss Prevention - DLP policy disabled, deleted or changed to simulation mode'
+description: |
+  Supplements the out-of-box Office Policy Tampering rule with an explicit check for Purview DLP cmdlets outside your approved compliance admin list. Run hourly in Sentinel with a 1-hour lookback. MITRE: Defense Evasion, Impair Defenses T1562.001. Source guide: data-security/purview-dlp/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.001
+query: |
+  // CUSTOM - Purview DLP policy or rule modified, disabled or removed outside approved admins
+  // ASSUMPTION: Confirm exact Operation strings emitted by your tenant with:
+  //   OfficeActivity | where TimeGenerated > ago(30d) | where Operation has "DlpCompliance" | distinct Operation
+  let approved_admins = dynamic(["compliance-admin@yourdomain.gov.au"]);
+  OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where Operation in~ (
+      "Remove-DlpCompliancePolicy",
+      "Remove-DlpComplianceRule",
+      "Set-DlpCompliancePolicy",
+      "Set-DlpComplianceRule",
+      "Disable-DlpComplianceRule"
+  )
+  | where UserId !in~ (approved_admins)
+  | project TimeGenerated, Operation, UserId, ClientIP, OfficeWorkload, Parameters
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: OfficeWorkload
+version: 1.0.0
+kind: Scheduled

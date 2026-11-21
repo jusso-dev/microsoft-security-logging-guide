@@ -1,0 +1,39 @@
+id: 046a7f0c-ad2f-57f3-ac09-ac4e25ba40b1
+name: 'Entra ID (sign-in, audit and Graph activity logs) - Refresh token replay across countries'
+description: |
+  ID Protection's atypical travel covers this for P2 tenants. This rule is the fallback for P1 tenants and also catches replay where risk didn't fire. It reads non-interactive sign-ins because a stolen refresh token is used silently, with no interactive prompt. Tune the threshold against your VPN and SSO proxy patterns. Microsoft maps anomalous token to MITRE T1539 and the replay pattern sits with T1550, use of alternate authentication material (MITRE mapping). Source guide: identity/entra-id/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - AADNonInteractiveUserSignInLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+  - LateralMovement
+relevantTechniques:
+  - T1539
+  - T1550
+query: |
+  // CUSTOM - Non-interactive sign-ins for one user from many countries inside an hour
+  // ASSUMPTION: Location holds the two letter country code, as documented for SigninLogs.
+  // Inspect one sample row before enabling.
+  AADNonInteractiveUserSignInLogs
+  | where TimeGenerated > ago(1h)
+  | where isnotempty(Location)
+  | summarize Countries = dcount(Location), SampleCountries = make_set(Location, 8),
+              IPs = dcount(IPAddress), Apps = dcount(AppId)
+              by UserPrincipalName, Hour = bin(TimeGenerated, 1h)
+  | where Countries >= 3
+  | project Hour, UserPrincipalName, Countries, SampleCountries, IPs, Apps
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserPrincipalName
+version: 1.0.0
+kind: Scheduled

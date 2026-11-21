@@ -1,0 +1,47 @@
+id: de133cee-e683-593a-ae30-e63ba222ee17
+name: 'Windows security event logs (clients) - First-time RDP source for a user'
+description: |
+  MITRE: Lateral Movement T1021.001. Cheap to run because 4624 Type 10 is a small slice of logon traffic. Source guide: endpoint/windows-security-events/README.md (C5).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - LateralMovement
+relevantTechniques:
+  - T1021.001
+query: |
+  // CUSTOM - RDP logon from an IP the user hasn't used in the last 14 days
+  // Run daily over a 1-day lookback.
+  // ASSUMPTION: LogonType 10 is RemoteInteractive in your data. LogonType is an int column.
+  let lookback = 14d;
+  let history = SecurityEvent
+  | where TimeGenerated > ago(lookback) and TimeGenerated < ago(1d)
+  | where EventID == 4624 and LogonType == 10
+  | summarize by TargetUserName, IpAddress;
+  SecurityEvent
+  | where TimeGenerated > ago(1d)
+  | where EventID == 4624 and LogonType == 10
+  | join kind=leftanti history on TargetUserName, IpAddress
+  | project TimeGenerated, Computer, TargetUserName, IpAddress
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: TargetUserName
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IpAddress
+version: 1.0.0
+kind: Scheduled

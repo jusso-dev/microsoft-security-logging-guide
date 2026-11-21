@@ -1,0 +1,40 @@
+id: 0edd41d1-1620-55da-8076-96f44e05e50a
+name: 'Azure DevOps - Full-scope or long-lived Personal Access Token (PAT) created'
+description: |
+  Broad-scope PATs (vso.full_access or global tokens across all organisations) are a common persistence mechanism and bypass Conditional Access session controls. MITRE ATT&CK: Persistence T1098 (Account Manipulation) and Credential Access T1528. Source guide: devops/azure-devops/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureDevOpsAuditing
+    dataTypes:
+      - AzureDevOpsAuditing
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - CredentialAccess
+relevantTechniques:
+  - T1098
+  - T1528
+query: |
+  // CUSTOM - Personal Access Token created with broad scope or by non-standard actor
+  // ASSUMPTION: OperationName for PAT creation is "Token.PatCreateEvent" and Scopes/Data carries
+  // token scope metadata (verify exact column contents on a test PAT creation event first).
+  AzureDevOpsAuditing
+  | where TimeGenerated > ago(1h)
+  | where OperationName =~ "Token.PatCreateEvent"
+  | where Scopes has_any ("app_token", "vso.full_access") or Details has_any ("All accessible organizations", "Full access")
+  | project TimeGenerated, ActorUPN, ActorDisplayName, IpAddress, UserAgent, AuthenticationMechanism, Scopes, Details, Data
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorUPN
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IpAddress
+version: 1.0.0
+kind: Scheduled

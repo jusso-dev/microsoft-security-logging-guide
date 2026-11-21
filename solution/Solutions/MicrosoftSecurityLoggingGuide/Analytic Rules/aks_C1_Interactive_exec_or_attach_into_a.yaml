@@ -1,0 +1,48 @@
+id: fe7736be-3028-557c-a2f7-f4622cecc99e
+name: 'Azure Kubernetes Service (AKS) - Interactive exec or attach into a Kubernetes pod'
+description: |
+  Attackers who obtain cluster credentials frequently run kubectl exec into running pods to steal mounted tokens, pivot or drop tools. MITRE: Execution, Container Administration Command T1609. Source guide: azure/aks/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureKubernetesServices
+    dataTypes:
+      - AKSAuditAdmin
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+relevantTechniques:
+  - T1609
+query: |
+  // CUSTOM - Interactive exec or attach into a pod in AKS
+  // ASSUMPTION: Resource-specific diagnostic setting kube-audit-admin is enabled (writes to AKSAuditAdmin).
+  // Filter approved break-glass or SRE accounts via a watchlist after baselining.
+  let approved_users = dynamic(["sre-breakglass@yourdomain.gov.au"]);
+  AKSAuditAdmin
+  | where TimeGenerated > ago(1h)
+  | where Verb in ("create", "get")
+  | where tostring(ObjectRef.resource) == "pods"
+      and tostring(ObjectRef.subresource) in ("exec", "attach")
+  | extend Username = tostring(User.username),
+           Namespace = tostring(ObjectRef.namespace),
+           PodName = tostring(ObjectRef.name),
+           ResponseCode = toint(ResponseStatus.code)
+  | where ResponseCode between (100 .. 299)
+  | where Username !startswith "system:"
+  | where Username !in~ (approved_users)
+  | project TimeGenerated, Cluster = _ResourceId, Username, Namespace, PodName,
+            Subresource = tostring(ObjectRef.subresource), RequestUri, SourceIps, ResponseCode
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: Username
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Cluster
+version: 1.0.0
+kind: Scheduled

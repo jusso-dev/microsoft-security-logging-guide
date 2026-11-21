@@ -1,0 +1,44 @@
+id: 1ef8932a-b811-54a3-b185-77d590cbf579
+name: 'Power Platform (Power Apps, Power Automate, Power Platform admin) - Data policy changed by a non-approved admin'
+description: |
+  The out-of-box DLP rule ignores policy creations and doesn't check whether the actor is an approved admin. Feed approved_admins from a watchlist of PIM-eligible Power Platform Administrators. MITRE: Defense Evasion T1562.001. Source guide: business-apps/power-platform/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: PowerPlatformAdmin
+    dataTypes:
+      - PowerPlatformAdminActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+  - Collection
+relevantTechniques:
+  - T1562.001
+query: |
+  // CUSTOM - Any data policy create/update/delete by someone outside the approved admin list
+  // ASSUMPTION: replace approved_admins with your PIM-eligible Power Platform admins or a watchlist.
+  let approved_admins = dynamic(["pp-admin1@yourdomain.gov.au"]);
+  PowerPlatformAdminActivity
+  | where TimeGenerated > ago(1h)
+  | where EventOriginalType == "GovernanceApiPolicyOperation"
+  | mv-expand PropertyCollection
+  | extend Name = tostring(PropertyCollection.Name), Value = tostring(PropertyCollection.Value)
+  | summarize Props = make_bag(bag_pack(Name, Value)) by TimeGenerated, EventOriginalUid, ActorName
+  | extend Operation = tostring(Props["powerplatform.analytics.resource.tenant.governance.api_policy.operation_name"]),
+           PolicyName = tostring(Props["powerplatform.analytics.resource.display_name"]),
+           PolicyId = tostring(Props["powerplatform.analytics.resource.id"]),
+           Actor = coalesce(tostring(Props["enduser.principal_name"]), ActorName)
+  | where Operation in ("CreateDlpPolicy", "UpdateDlpPolicy", "DeleteDlpPolicy")
+  | where Actor !in~ (approved_admins)
+  | extend AlertSeverity = iif(Operation == "DeleteDlpPolicy", "High", "Medium")
+  | project TimeGenerated, Actor, Operation, PolicyName, PolicyId, AlertSeverity
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

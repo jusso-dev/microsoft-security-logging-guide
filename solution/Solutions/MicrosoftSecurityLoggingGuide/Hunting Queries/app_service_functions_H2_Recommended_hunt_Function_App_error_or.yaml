@@ -1,0 +1,22 @@
+id: 3d878100-4218-5ca7-a9e0-b811db98128b
+name: 'Azure App Service and Azure Functions - Recommended hunt: Function App error or critical bursts'
+description: |
+  - **Recommended hunt: Function App error or critical bursts.** Sudden spikes in Error or Critical rows in FunctionAppLogs often reveal malformed payload probing or broken/abused HTTP triggers: Source guide: azure/app-service-functions/README.md.
+requiredDataConnectors:
+  - connectorId: AzureAppService
+    dataTypes:
+      - FunctionAppLogs
+tactics:
+  - Discovery
+query: |
+  FunctionAppLogs
+  | where TimeGenerated > ago(24h)
+  | where Level in ("Error", "Critical")
+  | summarize Errors = count(), SampleMessages = make_set(Message, 5) by FunctionName, _ResourceId
+  | order by Errors desc
+entityMappings:
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: _ResourceId
+version: 1.0.0

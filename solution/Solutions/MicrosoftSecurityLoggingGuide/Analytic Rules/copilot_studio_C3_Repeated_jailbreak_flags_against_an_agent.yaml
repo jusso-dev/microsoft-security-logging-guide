@@ -1,0 +1,38 @@
+id: 5fecf861-f477-5759-9ba7-09137ad070de
+name: 'Copilot Studio - Repeated jailbreak flags against an agent'
+description: |
+  Adds aggregation on top of single-event jailbreak alerts to spot sustained prompt-injection probing against a specific agent. MITRE: Initial Access T1190, Credential Access. Source guide: business-apps/copilot-studio/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftCopilot
+    dataTypes:
+      - CopilotActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - CredentialAccess
+relevantTechniques:
+  - T1190
+query: |
+  // CUSTOM - Multiple jailbreak detections against the same agent or by the same user in an hour
+  // ASSUMPTION: confirm LLMEventData.Messages[].JailbreakDetected structure on a sample row in CopilotActivity.
+  CopilotActivity
+  | where TimeGenerated > ago(1h)
+  | where RecordType == "CopilotInteraction"
+  | extend Messages = LLMEventData.Messages
+  | mv-expand Messages
+  | where tobool(Messages.JailbreakDetected) == true
+  | summarize JailbreakHits = count(), Users = dcount(ActorUserId), SampleUsers = make_set(ActorName, 10)
+              by AgentName, bin(TimeGenerated, 1h)
+  | where JailbreakHits >= 3
+entityMappings:
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: AgentName
+version: 1.0.0
+kind: Scheduled

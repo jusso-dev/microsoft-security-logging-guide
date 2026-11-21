@@ -1,0 +1,21 @@
+id: 88ecd85d-2c8f-5d4b-96bf-94b949ae94c7
+name: 'Purview Information Protection - Top applications and workloads interacting with labelled items in MicrosoftPurviewInformatio...'
+description: |
+  - **Top applications and workloads interacting with labelled items in MicrosoftPurviewInformationProtection**: Source guide: data-security/information-protection/README.md.
+requiredDataConnectors:
+  - connectorId: MicrosoftPurviewInformationProtection
+    dataTypes:
+      - MicrosoftPurviewInformationProtection
+tactics:
+  - Discovery
+query: |
+  MicrosoftPurviewInformationProtection
+  | where TimeGenerated > ago(7d)
+  | summarize Events = count(), Users = dcount(UserId) by Workload, Application, LabelEventType, ResultStatus
+  | order by Events desc
+entityMappings:
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: Application
+version: 1.0.0

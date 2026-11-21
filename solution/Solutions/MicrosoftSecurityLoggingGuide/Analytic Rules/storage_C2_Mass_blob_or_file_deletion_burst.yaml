@@ -1,0 +1,47 @@
+id: e647c43d-66df-5333-9028-4c1fe4b7da44
+name: 'Azure Storage - Mass blob or file deletion burst'
+description: |
+  Ransomware operators and destructive insiders often wipe blob containers or Azure File shares after exfiltration. Tune the threshold against legitimate batch cleanup jobs and Azure Storage lifecycle management policies. MITRE: Impact, Data Destruction T1485. Source guide: azure/storage/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureStorageAccount
+    dataTypes:
+      - StorageBlobLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Exfiltration
+  - Impact
+relevantTechniques:
+  - T1485
+query: |
+  // CUSTOM - High volume of blob deletions by a single caller IP within 15 minutes
+  // ASSUMPTION: OperationName values include DeleteBlob and DeleteContainer in StorageBlobLogs,
+  // and StatusCode 202 indicates accepted deletion. Verify with a test deletion first.
+  let lifecycle_allowlist = dynamic(["backup-cleanup-account"]);
+  StorageBlobLogs
+  | where TimeGenerated > ago(1h)
+  | where Category == "StorageDelete"
+  | where StatusCode in (200, 202)
+  | where AccountName !in~ (lifecycle_allowlist)
+  | summarize Deletes = count(),
+              Operations = make_set(OperationName, 10),
+              AuthTypes = make_set(AuthenticationType, 5),
+              SampleUris = make_set(Uri, 10)
+              by AccountName, CallerIpAddress, Window = bin(TimeGenerated, 15m)
+  | where Deletes >= 100
+  | order by Deletes desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: AccountName
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+version: 1.0.0
+kind: Scheduled

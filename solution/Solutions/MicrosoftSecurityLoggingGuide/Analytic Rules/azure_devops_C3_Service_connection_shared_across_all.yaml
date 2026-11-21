@@ -1,0 +1,44 @@
+id: 72910796-3636-5bc3-b080-2a22018aad0e
+name: 'Azure DevOps - Service connection shared across all pipelines or modified outside change control'
+description: |
+  Opening a production Azure service connection to all pipelines lets any contributor with repo write access run a YAML pipeline that uses the service principal's Azure permissions. MITRE ATT&CK: Privilege Escalation T1078.004 and Lateral Movement. Source guide: devops/azure-devops/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureDevOpsAuditing
+    dataTypes:
+      - AzureDevOpsAuditing
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - PrivilegeEscalation
+  - LateralMovement
+  - InitialAccess
+relevantTechniques:
+  - T1078.004
+query: |
+  // CUSTOM - Service connection permissions broadened or modified unexpectedly
+  // ASSUMPTION: Area == "Library" and OperationName matches ServiceEndpoint / PipelinePermission events.
+  // Validate exact OperationName strings in your tenant with:
+  //   AzureDevOpsAuditing | where TimeGenerated > ago(30d) | where Area == "Library" | distinct OperationName
+  let approved_admins = dynamic(["devops-admin@yourdomain.gov.au"]);
+  AzureDevOpsAuditing
+  | where TimeGenerated > ago(1h)
+  | where Area =~ "Library"
+  | where OperationName has_any ("ServiceEndpoint", "PipelinePermission")
+  | where Details has_any ("all pipelines", "Authorize", "Modified", "Created")
+  | where ActorUPN !in~ (approved_admins)
+  | project TimeGenerated, ProjectName, ActorUPN, IpAddress, AuthenticationMechanism, OperationName, Details, Data
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorUPN
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IpAddress
+version: 1.0.0
+kind: Scheduled

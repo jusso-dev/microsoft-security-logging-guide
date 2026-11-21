@@ -1,0 +1,34 @@
+id: 00f50750-0fd9-5e4d-b071-5854b9d05889
+name: 'Active Directory Federation Services (AD FS) - Brute force against a single federated account'
+description: |
+  The OOB spray rule looks for many accounts from one IP. Its blind side is many passwords against one account, which on AD FS is common against break-glass and service accounts that bypass Entra smart lockout. MITRE: Credential Access T1110.001. Correlate with the Connect Health bad password report if you want the portal view as well. Source guide: identity/adfs/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - ADFSSignInLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1110.001
+query: |
+  // CUSTOM - repeated failures against one account through AD FS
+  ADFSSignInLogs
+  | where TimeGenerated > ago(1h)
+  | where ResultType !in (0, 50144)
+  | summarize Failures = count(), Ips = dcount(IPAddress), FirstSeen = min(TimeGenerated)
+      by UserPrincipalName
+  | where Failures >= 10
+  | project UserPrincipalName, Failures, Ips, FirstSeen
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserPrincipalName
+version: 1.0.0
+kind: Scheduled

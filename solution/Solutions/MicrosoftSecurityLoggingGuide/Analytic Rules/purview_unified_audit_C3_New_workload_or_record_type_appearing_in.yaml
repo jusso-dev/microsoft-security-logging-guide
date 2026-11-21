@@ -1,0 +1,37 @@
+id: 248df7e9-c86b-5704-81b9-fe2817788449
+name: 'Purview unified audit log - New workload or record type appearing in the audit feed'
+description: |
+  This is the audit estate's change detector. If you did not connect anything new, a new record type deserves an explanation. Use it with validation query 3. Source guide: email-collab/purview-unified-audit/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Discovery
+query: |
+  // CUSTOM - A workload or record type that has not been seen for 30 days starts
+  // sending data. Legitimate causes: a new connector, a licence change, a service
+  // that just started auditing. Worth a look either way.
+  // Run daily with a 1d lookback.
+  let lookback = 30d;
+  let known = OfficeActivity
+   | where TimeGenerated between (ago(lookback) .. ago(1d))
+   | summarize by OfficeWorkload, RecordType;
+  OfficeActivity
+  | where TimeGenerated > ago(1d)
+  | summarize Rows = count(), Actors = dcount(UserId) by OfficeWorkload, RecordType
+  | join kind=leftanti known on OfficeWorkload, RecordType
+  | project OfficeWorkload, RecordType, Rows, Actors
+entityMappings:
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: OfficeWorkload
+version: 1.0.0
+kind: Scheduled

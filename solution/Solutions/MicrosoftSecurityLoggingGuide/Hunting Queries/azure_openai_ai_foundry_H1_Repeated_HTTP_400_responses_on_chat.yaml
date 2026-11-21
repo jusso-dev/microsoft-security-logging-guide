@@ -1,0 +1,28 @@
+id: 10c974f1-3cc9-5b87-b81d-661b0cf4e5ad
+name: 'Foundry (formerly Azure AI Foundry) and Azure OpenAI - Repeated HTTP 400 responses on chat completions (often content filter...'
+description: |
+  - **Content filter block rate by caller IP or deployment.** Look for callers repeatedly hitting Azure AI Content Safety blocks (HTTP 400 with content-filter indicators in RequestResponse) to spot systematic red-teaming or prompt injection probing. Source guide: ai/azure-openai-ai-foundry/README.md.
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureDiagnostics
+tactics:
+  - Discovery
+query: |
+  // Hunt: Repeated HTTP 400 responses on chat completions (often content filter blocks or malformed probes)
+  AzureDiagnostics
+  | where TimeGenerated > ago(7d)
+  | where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+  | where Category == "RequestResponse"
+  | where OperationName in ("Completions_Create", "ChatCompletions_Create")
+  | where tostring(ResultSignature) == "400"
+  | summarize BlockedRequests = count(), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated)
+      by Resource, CallerIPAddress
+  | where BlockedRequests >= 10
+  | order by BlockedRequests desc
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIPAddress
+version: 1.0.0

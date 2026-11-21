@@ -1,0 +1,43 @@
+id: edebb008-df3e-5db1-be84-c33ee4d58e02
+name: 'SharePoint Online and OneDrive - Site collection admin added, or admin self-access to a OneDrive'
+description: |
+  SiteCollectionAdminAdded is also logged when an admin grants themselves access to a user's OneDrive through the profile page, which is exactly the pattern to watch in investigations. Follow up with FileAccessed by the new admin on the same site. MITRE: Privilege Escalation T1098, Defense Evasion T1562. Source guide: email-collab/sharepoint-onedrive/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - PrivilegeEscalation
+  - DefenseEvasion
+  - Collection
+  - Persistence
+relevantTechniques:
+  - T1098
+  - T1562
+query: |
+  // CUSTOM - Site collection administrator changes
+  OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where Operation in ("SiteCollectionAdminAdded", "SiteCollectionAdminRemoved")
+  | project TimeGenerated, Operation, UserId, TargetUserOrGroupName, OfficeWorkload, Site_Url
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: URL
+    fieldMappings:
+      - identifier: Url
+        columnName: Site_Url
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: OfficeWorkload
+version: 1.0.0
+kind: Scheduled

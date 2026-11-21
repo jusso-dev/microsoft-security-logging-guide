@@ -1,0 +1,134 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Microsoft Security Logging Guide: Ingestion Health and Table Freshness\n\nMonitors whether documented Microsoft Sentinel Analytics tables are landing, tracks connector health in `SentinelHealth`, audits rule changes in `SentinelAudit`, and surfaces stale watchlists. Built from `queries/validation/` and `docs/sentinel-health.md`."
+      },
+      "name": "header-health"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Master validation query: is every documented Sentinel table landing?\n// Checks freshness, 24h/7d row counts and 7-day volume across every Analytics-tier table in the guide.\n// Run in: Defender portal > Investigation & response > Advanced hunting (Sentinel workspace selected) or Log Analytics Logs.\n// Trim ExpectedTables to the connectors you actually use before turning this into a scheduled alert rule.\n// Note: Tables set to Data lake tier only do not appear in workspace Analytics unions; inspect them in Data lake explorer.\nlet ExpectedTables = datatable(Table: string, Group: string, MaxSilentHours: int) [\n    \"AADManagedIdentitySignInLogs\", \"identity\", 24,\n    \"AADNonInteractiveUserSignInLogs\", \"identity\", 1,\n    \"AADProvisioningLogs\", \"identity\", 24,\n    \"AADRiskyServicePrincipals\", \"identity\", 168,\n    \"AADRiskyUsers\", \"identity\", 168,\n    \"AADServicePrincipalRiskEvents\", \"identity\", 168,\n    \"AADServicePrincipalSignInLogs\", \"identity\", 4,\n    \"AADUserRiskEvents\", \"identity\", 168,\n    \"ADFSSignInLogs\", \"identity\", 24,\n    \"ADOAuditLogs_CL\", \"devops\", 24,\n    \"AGWAccessLogs\", \"azure\", 4,\n    \"AGWFirewallLogs\", \"azure\", 24,\n    \"AKSAudit\", \"azure\", 24,\n    \"AKSAuditAdmin\", \"azure\", 4,\n    \"AKSControlPlane\", \"azure\", 24,\n    \"ASimDnsActivityLogs\", \"servers\", 4,\n    \"AWSCloudTrail\", \"multi-cloud\", 4,\n    \"AWSCloudWatch\", \"multi-cloud\", 24,\n    \"AWSGuardDuty\", \"multi-cloud\", 24,\n    \"AWSNetworkFirewall\", \"multi-cloud\", 24,\n    \"AWSVPCFlow\", \"multi-cloud\", 4,\n    \"AZFWApplicationRule\", \"azure\", 4,\n    \"AZFWDnsQuery\", \"azure\", 4,\n    \"AZFWIdpsSignature\", \"azure\", 24,\n    \"AZFWNatRule\", \"azure\", 24,\n    \"AZFWNetworkRule\", \"azure\", 4,\n    \"AZFWThreatIntel\", \"azure\", 24,\n    \"AZKVAuditLogs\", \"azure\", 4,\n    \"AlertEvidence\", \"endpoint\", 24,\n    \"AlertInfo\", \"endpoint\", 24,\n    \"AppServiceAuditLogs\", \"azure\", 24,\n    \"AppServiceHTTPLogs\", \"azure\", 4,\n    \"AppServiceIPSecAuditLogs\", \"azure\", 24,\n    \"AuditLogs\", \"identity\", 4,\n    \"AzureActivity\", \"azure\", 2,\n    \"AzureDevOpsAuditing\", \"devops\", 24,\n    \"AzureDiagnostics\", \"azure\", 4,\n    \"CloudAppEvents\", \"email-collab\", 4,\n    \"CommonSecurityLog\", \"servers\", 1,\n    \"ContainerLogV2\", \"azure\", 4,\n    \"CopilotActivity\", \"business-apps\", 4,\n    \"DNSQueryLogs\", \"azure\", 4,\n    \"DataverseActivity\", \"business-apps\", 4,\n    \"DeviceEvents\", \"endpoint\", 4,\n    \"DeviceFileEvents\", \"endpoint\", 4,\n    \"DeviceLogonEvents\", \"endpoint\", 4,\n    \"DeviceNetworkEvents\", \"endpoint\", 4,\n    \"DeviceProcessEvents\", \"endpoint\", 4,\n    \"EmailAttachmentInfo\", \"email-collab\", 4,\n    \"EmailEvents\", \"email-collab\", 4,\n    \"EmailPostDeliveryEvents\", \"email-collab\", 24,\n    \"EmailUrlInfo\", \"email-collab\", 4,\n    \"Event\", \"endpoint\", 4,\n    \"FinanceOperationsActivity_CL\", \"business-apps\", 24,\n    \"FunctionAppLogs\", \"azure\", 4,\n    \"GCPAuditLogs\", \"multi-cloud\", 4,\n    \"GCPDNS\", \"multi-cloud\", 4,\n    \"GCPVPCFlow\", \"multi-cloud\", 4,\n    \"GitHubAdvancedSecurityAlerts_CL\", \"devops\", 168,\n    \"GitHubAuditLogsV2_CL\", \"devops\", 24,\n    \"GitHubAuditLogsV3_CL\", \"devops\", 24,\n    \"GoogleCloudSCC\", \"multi-cloud\", 24,\n    \"IdentityInfo\", \"identity\", 24,\n    \"IntuneAuditLogs\", \"endpoint\", 24,\n    \"IntuneDeviceComplianceOrg\", \"endpoint\", 48,\n    \"IntuneDevices\", \"endpoint\", 48,\n    \"IntuneOperationalLogs\", \"endpoint\", 24,\n    \"LAQueryLogs\", \"sentinel-health\", 24,\n    \"MDCFileIntegrityMonitoringEvents\", \"servers\", 24,\n    \"McasShadowItReporting\", \"cloud-apps\", 24,\n    \"MicrosoftGraphActivityLogs\", \"identity\", 4,\n    \"MicrosoftPurviewInformationProtection\", \"data-security\", 24,\n    \"NTANetAnalytics\", \"azure\", 4,\n    \"NetworkAccessTraffic\", \"identity\", 4,\n    \"OfficeActivity\", \"email-collab\", 2,\n    \"PowerAutomateActivity\", \"business-apps\", 24,\n    \"PowerPlatformAdminActivity\", \"business-apps\", 24,\n    \"RemoteNetworkHealthLogs\", \"identity\", 4,\n    \"SecureScores\", \"azure\", 24,\n    \"SecurityAlert\", \"identity\", 24,\n    \"SecurityEvent\", \"identity\", 1,\n    \"SecurityIncident\", \"identity\", 24,\n    \"SecurityRecommendation\", \"azure\", 24,\n    \"SecurityRegulatoryCompliance\", \"azure\", 24,\n    \"SentinelAudit\", \"sentinel-health\", 24,\n    \"SentinelHealth\", \"sentinel-health\", 4,\n    \"SigninLogs\", \"identity\", 1,\n    \"StorageBlobLogs\", \"azure\", 4,\n    \"StorageFileLogs\", \"azure\", 24,\n    \"StorageQueueLogs\", \"azure\", 24,\n    \"StorageTableLogs\", \"azure\", 24,\n    \"Syslog\", \"servers\", 1,\n    \"UrlClickEvents\", \"email-collab\", 24,\n    \"W3CIISLog\", \"servers\", 4,\n    \"WindowsEvent\", \"endpoint\", 4\n];\nlet Freshness = union withsource=Table isfuzzy=true\n    AADManagedIdentitySignInLogs,\n    AADNonInteractiveUserSignInLogs,\n    AADProvisioningLogs,\n    AADRiskyServicePrincipals,\n    AADRiskyUsers,\n    AADServicePrincipalRiskEvents,\n    AADServicePrincipalSignInLogs,\n    AADUserRiskEvents,\n    ADFSSignInLogs,\n    ADOAuditLogs_CL,\n    AGWAccessLogs,\n    AGWFirewallLogs,\n    AKSAudit,\n    AKSAuditAdmin,\n    AKSControlPlane,\n    ASimDnsActivityLogs,\n    AWSCloudTrail,\n    AWSCloudWatch,\n    AWSGuardDuty,\n    AWSNetworkFirewall,\n    AWSVPCFlow,\n    AZFWApplicationRule,\n    AZFWDnsQuery,\n    AZFWIdpsSignature,\n    AZFWNatRule,\n    AZFWNetworkRule,\n    AZFWThreatIntel,\n    AZKVAuditLogs,\n    AlertEvidence,\n    AlertInfo,\n    AppServiceAuditLogs,\n    AppServiceHTTPLogs,\n    AppServiceIPSecAuditLogs,\n    AuditLogs,\n    AzureActivity,\n    AzureDevOpsAuditing,\n    AzureDiagnostics,\n    CloudAppEvents,\n    CommonSecurityLog,\n    ContainerLogV2,\n    CopilotActivity,\n    DNSQueryLogs,\n    DataverseActivity,\n    DeviceEvents,\n    DeviceFileEvents,\n    DeviceLogonEvents,\n    DeviceNetworkEvents,\n    DeviceProcessEvents,\n    EmailAttachmentInfo,\n    EmailEvents,\n    EmailPostDeliveryEvents,\n    EmailUrlInfo,\n    Event,\n    FinanceOperationsActivity_CL,\n    FunctionAppLogs,\n    GCPAuditLogs,\n    GCPDNS,\n    GCPVPCFlow,\n    GitHubAdvancedSecurityAlerts_CL,\n    GitHubAuditLogsV2_CL,\n    GitHubAuditLogsV3_CL,\n    GoogleCloudSCC,\n    IdentityInfo,\n    IntuneAuditLogs,\n    IntuneDeviceComplianceOrg,\n    IntuneDevices,\n    IntuneOperationalLogs,\n    LAQueryLogs,\n    MDCFileIntegrityMonitoringEvents,\n    McasShadowItReporting,\n    MicrosoftGraphActivityLogs,\n    MicrosoftPurviewInformationProtection,\n    NTANetAnalytics,\n    NetworkAccessTraffic,\n    OfficeActivity,\n    PowerAutomateActivity,\n    PowerPlatformAdminActivity,\n    RemoteNetworkHealthLogs,\n    SecureScores,\n    SecurityAlert,\n    SecurityEvent,\n    SecurityIncident,\n    SecurityRecommendation,\n    SecurityRegulatoryCompliance,\n    SentinelAudit,\n    SentinelHealth,\n    SigninLogs,\n    StorageBlobLogs,\n    StorageFileLogs,\n    StorageQueueLogs,\n    StorageTableLogs,\n    Syslog,\n    UrlClickEvents,\n    W3CIISLog,\n    WindowsEvent\n    | where TimeGenerated > ago(7d)\n    | summarize Rows24h = countif(TimeGenerated > ago(24h)), Rows7d = count(), Latest = max(TimeGenerated) by Table;\nlet Volume = Usage\n    | where TimeGenerated > ago(7d)\n    | summarize GB7d = round(sum(Quantity) / 1000.0, 3), DailyAvgGB = round(sum(Quantity) / 1000.0 / 7.0, 3), IsBillable = any(IsBillable) by Table = DataType;\nExpectedTables\n| join kind=leftouter Freshness on Table\n| join kind=leftouter Volume on Table\n| extend\n    Rows24h = coalesce(Rows24h, 0),\n    Rows7d = coalesce(Rows7d, 0),\n    AgeHours = iff(isnotempty(Latest), round((now() - Latest) / 1h, 1), real(null)),\n    GB7d = coalesce(GB7d, 0.0),\n    DailyAvgGB = coalesce(DailyAvgGB, 0.0)\n| extend Status = case(\n    Rows7d == 0, \"NO_DATA_7D\",\n    AgeHours > MaxSilentHours, \"STALE\",\n    \"OK\"\n)\n| project Group, Table, Status, Rows24h, Rows7d, Latest, AgeHours, MaxSilentHours, DailyAvgGB, GB7d, IsBillable\n| order by Status asc, Group asc, Table asc",
+        "size": 2,
+        "title": "All documented Sentinel tables: freshness and 7-day volume",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "master-table-freshness"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "SentinelHealth\n| where TimeGenerated > ago(7d)\n| where SentinelResourceType == 'DataConnector'\n| summarize Events = count(), Failures = countif(Status == 'Failure'), Latest = arg_max(TimeGenerated, Status)\n    by Connector = SentinelResourceName\n| order by Failures desc",
+        "size": 1,
+        "title": "SentinelHealth: data connector status and failures (7 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "connector-health-7d"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "SentinelAudit\n| where TimeGenerated > ago(14d)\n| where SentinelResourceType == 'AlertRule'\n| where OperationName has_any ('Delete', 'Disable', 'Update')\n| project TimeGenerated, Rule = SentinelResourceName, OperationName, Description\n| order by TimeGenerated desc",
+        "size": 1,
+        "title": "SentinelAudit: analytics rule changes (14 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "rule-audit-14d"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Watchlist\n| where TimeGenerated > ago(60d)\n| summarize Items = count(), LastUpdate = max(LastUpdatedTimeUTC) by WatchlistAlias\n| extend DaysSinceUpdate = round((now() - LastUpdate) / 1d, 1)\n| order by DaysSinceUpdate desc",
+        "size": 1,
+        "title": "Watchlist staleness check (60 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "watchlist-freshness"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Validation query pack: Identity\n// Checks freshness (Rows, Latest, AgeHours) and 7-day volume (GB) for documented Identity tables.\n// Run in: Defender portal > Investigation & response > Advanced hunting (Sentinel workspace selected) or Log Analytics Logs.\n// Note: Defender XDR native tables (EntraIdSignInEvents, EntraIdSpnSignInEvents, IdentityLogonEvents, IdentityQueryEvents, IdentityDirectoryEvents) live in Defender XDR advanced hunting unless streamed.\nlet ExpectedTables = datatable(Table: string, MaxSilentHours: int) [\n    \"SigninLogs\", 1,\n    \"AADNonInteractiveUserSignInLogs\", 1,\n    \"AADServicePrincipalSignInLogs\", 4,\n    \"AADManagedIdentitySignInLogs\", 24,\n    \"AuditLogs\", 4,\n    \"AADProvisioningLogs\", 24,\n    \"MicrosoftGraphActivityLogs\", 4,\n    \"ADFSSignInLogs\", 24,\n    \"AADUserRiskEvents\", 168,\n    \"AADRiskyUsers\", 168,\n    \"AADServicePrincipalRiskEvents\", 168,\n    \"AADRiskyServicePrincipals\", 168,\n    \"SecurityEvent\", 1,\n    \"SecurityAlert\", 24,\n    \"SecurityIncident\", 24,\n    \"IdentityInfo\", 24,\n    \"NetworkAccessTraffic\", 4,\n    \"RemoteNetworkHealthLogs\", 4\n];\nlet Freshness = union withsource=Table isfuzzy=true\n    SigninLogs, AADNonInteractiveUserSignInLogs, AADServicePrincipalSignInLogs, AADManagedIdentitySignInLogs, AuditLogs, AADProvisioningLogs, MicrosoftGraphActivityLogs, ADFSSignInLogs, AADUserRiskEvents, AADRiskyUsers, AADServicePrincipalRiskEvents, AADRiskyServicePrincipals, SecurityEvent, SecurityAlert, SecurityIncident, IdentityInfo, NetworkAccessTraffic, RemoteNetworkHealthLogs\n    | where TimeGenerated > ago(7d)\n    | summarize Rows24h = countif(TimeGenerated > ago(24h)), Rows7d = count(), Latest = max(TimeGenerated) by Table;\nlet Volume = Usage\n    | where TimeGenerated > ago(7d)\n    | where DataType in (\"SigninLogs\", \"AADNonInteractiveUserSignInLogs\", \"AADServicePrincipalSignInLogs\", \"AADManagedIdentitySignInLogs\", \"AuditLogs\", \"AADProvisioningLogs\", \"MicrosoftGraphActivityLogs\", \"ADFSSignInLogs\", \"AADUserRiskEvents\", \"AADRiskyUsers\", \"AADServicePrincipalRiskEvents\", \"AADRiskyServicePrincipals\", \"SecurityEvent\", \"SecurityAlert\", \"SecurityIncident\", \"IdentityInfo\", \"NetworkAccessTraffic\", \"RemoteNetworkHealthLogs\")\n    | summarize GB7d = round(sum(Quantity) / 1000.0, 3), DailyAvgGB = round(sum(Quantity) / 1000.0 / 7.0, 3) by Table = DataType;\nExpectedTables\n| join kind=leftouter Freshness on Table\n| join kind=leftouter Volume on Table\n| extend\n    Rows24h = coalesce(Rows24h, 0),\n    Rows7d = coalesce(Rows7d, 0),\n    AgeHours = iff(isnotempty(Latest), round((now() - Latest) / 1h, 1), real(null)),\n    GB7d = coalesce(GB7d, 0.0),\n    DailyAvgGB = coalesce(DailyAvgGB, 0.0)\n| extend Status = case(\n    Rows7d == 0, \"NO_DATA_7D\",\n    AgeHours > MaxSilentHours, \"STALE\",\n    \"OK\"\n)\n| project Table, Status, Rows24h, Rows7d, Latest, AgeHours, MaxSilentHours, DailyAvgGB, GB7d\n| order by Status asc, Table asc",
+        "size": 1,
+        "title": "Group check: Identity tables",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "group-identity"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Validation query pack: Endpoint\n// Checks freshness (Rows, Latest, AgeHours) and 7-day volume (GB) for documented Endpoint tables.\n// Run in: Defender portal > Investigation & response > Advanced hunting (Sentinel workspace selected) or Log Analytics Logs.\n// Note: Device* tables only appear in Sentinel if Defender XDR raw event streaming is enabled; otherwise query them directly in Defender XDR advanced hunting.\nlet ExpectedTables = datatable(Table: string, MaxSilentHours: int) [\n    \"SecurityAlert\", 24,\n    \"SecurityIncident\", 24,\n    \"AlertInfo\", 24,\n    \"AlertEvidence\", 24,\n    \"SecurityEvent\", 1,\n    \"WindowsEvent\", 4,\n    \"Event\", 4,\n    \"IntuneAuditLogs\", 24,\n    \"IntuneOperationalLogs\", 24,\n    \"IntuneDevices\", 48,\n    \"IntuneDeviceComplianceOrg\", 48,\n    \"DeviceProcessEvents\", 4,\n    \"DeviceNetworkEvents\", 4,\n    \"DeviceFileEvents\", 4,\n    \"DeviceLogonEvents\", 4,\n    \"DeviceEvents\", 4\n];\nlet Freshness = union withsource=Table isfuzzy=true\n    SecurityAlert, SecurityIncident, AlertInfo, AlertEvidence, SecurityEvent, WindowsEvent, Event, IntuneAuditLogs, IntuneOperationalLogs, IntuneDevices, IntuneDeviceComplianceOrg, DeviceProcessEvents, DeviceNetworkEvents, DeviceFileEvents, DeviceLogonEvents, DeviceEvents\n    | where TimeGenerated > ago(7d)\n    | summarize Rows24h = countif(TimeGenerated > ago(24h)), Rows7d = count(), Latest = max(TimeGenerated) by Table;\nlet Volume = Usage\n    | where TimeGenerated > ago(7d)\n    | where DataType in (\"SecurityAlert\", \"SecurityIncident\", \"AlertInfo\", \"AlertEvidence\", \"SecurityEvent\", \"WindowsEvent\", \"Event\", \"IntuneAuditLogs\", \"IntuneOperationalLogs\", \"IntuneDevices\", \"IntuneDeviceComplianceOrg\", \"DeviceProcessEvents\", \"DeviceNetworkEvents\", \"DeviceFileEvents\", \"DeviceLogonEvents\", \"DeviceEvents\")\n    | summarize GB7d = round(sum(Quantity) / 1000.0, 3), DailyAvgGB = round(sum(Quantity) / 1000.0 / 7.0, 3) by Table = DataType;\nExpectedTables\n| join kind=leftouter Freshness on Table\n| join kind=leftouter Volume on Table\n| extend\n    Rows24h = coalesce(Rows24h, 0),\n    Rows7d = coalesce(Rows7d, 0),\n    AgeHours = iff(isnotempty(Latest), round((now() - Latest) / 1h, 1), real(null)),\n    GB7d = coalesce(GB7d, 0.0),\n    DailyAvgGB = coalesce(DailyAvgGB, 0.0)\n| extend Status = case(\n    Rows7d == 0, \"NO_DATA_7D\",\n    AgeHours > MaxSilentHours, \"STALE\",\n    \"OK\"\n)\n| project Table, Status, Rows24h, Rows7d, Latest, AgeHours, MaxSilentHours, DailyAvgGB, GB7d\n| order by Status asc, Table asc",
+        "size": 1,
+        "title": "Group check: Endpoint tables",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "group-endpoint"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Validation query pack: Email and collaboration\n// Checks freshness (Rows, Latest, AgeHours) and 7-day volume (GB) for documented Email and collaboration tables.\n// Run in: Defender portal > Investigation & response > Advanced hunting (Sentinel workspace selected) or Log Analytics Logs.\n// Note: Email*, UrlClickEvents, Message* and CallActivityEvents stay in Defender XDR advanced hunting unless raw streaming is enabled.\nlet ExpectedTables = datatable(Table: string, MaxSilentHours: int) [\n    \"OfficeActivity\", 2,\n    \"EmailEvents\", 4,\n    \"EmailPostDeliveryEvents\", 24,\n    \"EmailUrlInfo\", 4,\n    \"EmailAttachmentInfo\", 4,\n    \"UrlClickEvents\", 24,\n    \"CloudAppEvents\", 4,\n    \"SecurityAlert\", 24,\n    \"SecurityIncident\", 24,\n    \"SentinelHealth\", 4\n];\nlet Freshness = union withsource=Table isfuzzy=true\n    OfficeActivity, EmailEvents, EmailPostDeliveryEvents, EmailUrlInfo, EmailAttachmentInfo, UrlClickEvents, CloudAppEvents, SecurityAlert, SecurityIncident, SentinelHealth\n    | where TimeGenerated > ago(7d)\n    | summarize Rows24h = countif(TimeGenerated > ago(24h)), Rows7d = count(), Latest = max(TimeGenerated) by Table;\nlet Volume = Usage\n    | where TimeGenerated > ago(7d)\n    | where DataType in (\"OfficeActivity\", \"EmailEvents\", \"EmailPostDeliveryEvents\", \"EmailUrlInfo\", \"EmailAttachmentInfo\", \"UrlClickEvents\", \"CloudAppEvents\", \"SecurityAlert\", \"SecurityIncident\", \"SentinelHealth\")\n    | summarize GB7d = round(sum(Quantity) / 1000.0, 3), DailyAvgGB = round(sum(Quantity) / 1000.0 / 7.0, 3) by Table = DataType;\nExpectedTables\n| join kind=leftouter Freshness on Table\n| join kind=leftouter Volume on Table\n| extend\n    Rows24h = coalesce(Rows24h, 0),\n    Rows7d = coalesce(Rows7d, 0),\n    AgeHours = iff(isnotempty(Latest), round((now() - Latest) / 1h, 1), real(null)),\n    GB7d = coalesce(GB7d, 0.0),\n    DailyAvgGB = coalesce(DailyAvgGB, 0.0)\n| extend Status = case(\n    Rows7d == 0, \"NO_DATA_7D\",\n    AgeHours > MaxSilentHours, \"STALE\",\n    \"OK\"\n)\n| project Table, Status, Rows24h, Rows7d, Latest, AgeHours, MaxSilentHours, DailyAvgGB, GB7d\n| order by Status asc, Table asc",
+        "size": 1,
+        "title": "Group check: Email and collaboration tables",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "group-email"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Validation query pack: Azure workloads and networking\n// Checks freshness (Rows, Latest, AgeHours) and 7-day volume (GB) for documented Azure workloads and networking tables.\n// Run in: Defender portal > Investigation & response > Advanced hunting (Sentinel workspace selected) or Log Analytics Logs.\n// Note: Tables configured as Data lake tier only will not return rows in the Analytics workspace union; check them in Data lake explorer.\nlet ExpectedTables = datatable(Table: string, MaxSilentHours: int) [\n    \"AzureActivity\", 2,\n    \"SecurityAlert\", 24,\n    \"SecurityRecommendation\", 24,\n    \"SecureScores\", 24,\n    \"SecurityRegulatoryCompliance\", 24,\n    \"AZKVAuditLogs\", 4,\n    \"AzureDiagnostics\", 4,\n    \"StorageBlobLogs\", 4,\n    \"StorageFileLogs\", 24,\n    \"StorageQueueLogs\", 24,\n    \"StorageTableLogs\", 24,\n    \"AKSAuditAdmin\", 4,\n    \"AKSAudit\", 24,\n    \"AKSControlPlane\", 24,\n    \"ContainerLogV2\", 4,\n    \"AZFWThreatIntel\", 24,\n    \"AZFWIdpsSignature\", 24,\n    \"AZFWNetworkRule\", 4,\n    \"AZFWApplicationRule\", 4,\n    \"AZFWNatRule\", 24,\n    \"AZFWDnsQuery\", 4,\n    \"NTANetAnalytics\", 4,\n    \"AGWFirewallLogs\", 24,\n    \"AGWAccessLogs\", 4,\n    \"DNSQueryLogs\", 4,\n    \"AppServiceAuditLogs\", 24,\n    \"AppServiceIPSecAuditLogs\", 24,\n    \"AppServiceHTTPLogs\", 4,\n    \"FunctionAppLogs\", 4\n];\nlet Freshness = union withsource=Table isfuzzy=true\n    AzureActivity, SecurityAlert, SecurityRecommendation, SecureScores, SecurityRegulatoryCompliance, AZKVAuditLogs, AzureDiagnostics, StorageBlobLogs, StorageFileLogs, StorageQueueLogs, StorageTableLogs, AKSAuditAdmin, AKSAudit, AKSControlPlane, ContainerLogV2, AZFWThreatIntel, AZFWIdpsSignature, AZFWNetworkRule, AZFWApplicationRule, AZFWNatRule, AZFWDnsQuery, NTANetAnalytics, AGWFirewallLogs, AGWAccessLogs, DNSQueryLogs, AppServiceAuditLogs, AppServiceIPSecAuditLogs, AppServiceHTTPLogs, FunctionAppLogs\n    | where TimeGenerated > ago(7d)\n    | summarize Rows24h = countif(TimeGenerated > ago(24h)), Rows7d = count(), Latest = max(TimeGenerated) by Table;\nlet Volume = Usage\n    | where TimeGenerated > ago(7d)\n    | where DataType in (\"AzureActivity\", \"SecurityAlert\", \"SecurityRecommendation\", \"SecureScores\", \"SecurityRegulatoryCompliance\", \"AZKVAuditLogs\", \"AzureDiagnostics\", \"StorageBlobLogs\", \"StorageFileLogs\", \"StorageQueueLogs\", \"StorageTableLogs\", \"AKSAuditAdmin\", \"AKSAudit\", \"AKSControlPlane\", \"ContainerLogV2\", \"AZFWThreatIntel\", \"AZFWIdpsSignature\", \"AZFWNetworkRule\", \"AZFWApplicationRule\", \"AZFWNatRule\", \"AZFWDnsQuery\", \"NTANetAnalytics\", \"AGWFirewallLogs\", \"AGWAccessLogs\", \"DNSQueryLogs\", \"AppServiceAuditLogs\", \"AppServiceIPSecAuditLogs\", \"AppServiceHTTPLogs\", \"FunctionAppLogs\")\n    | summarize GB7d = round(sum(Quantity) / 1000.0, 3), DailyAvgGB = round(sum(Quantity) / 1000.0 / 7.0, 3) by Table = DataType;\nExpectedTables\n| join kind=leftouter Freshness on Table\n| join kind=leftouter Volume on Table\n| extend\n    Rows24h = coalesce(Rows24h, 0),\n    Rows7d = coalesce(Rows7d, 0),\n    AgeHours = iff(isnotempty(Latest), round((now() - Latest) / 1h, 1), real(null)),\n    GB7d = coalesce(GB7d, 0.0),\n    DailyAvgGB = coalesce(DailyAvgGB, 0.0)\n| extend Status = case(\n    Rows7d == 0, \"NO_DATA_7D\",\n    AgeHours > MaxSilentHours, \"STALE\",\n    \"OK\"\n)\n| project Table, Status, Rows24h, Rows7d, Latest, AgeHours, MaxSilentHours, DailyAvgGB, GB7d\n| order by Status asc, Table asc",
+        "size": 1,
+        "title": "Group check: Azure workloads and networking tables",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "group-azure"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Validation query pack: Servers\n// Checks freshness (Rows, Latest, AgeHours) and 7-day volume (GB) for documented Servers tables.\n// Run in: Defender portal > Investigation & response > Advanced hunting (Sentinel workspace selected) or Log Analytics Logs.\n// Note: Device* tables from Defender for Endpoint on Windows/Linux servers stay in Defender XDR advanced hunting unless streamed.\nlet ExpectedTables = datatable(Table: string, MaxSilentHours: int) [\n    \"SecurityEvent\", 1,\n    \"WindowsEvent\", 4,\n    \"Event\", 4,\n    \"ASimDnsActivityLogs\", 4,\n    \"W3CIISLog\", 4,\n    \"MDCFileIntegrityMonitoringEvents\", 24,\n    \"Syslog\", 1,\n    \"CommonSecurityLog\", 1,\n    \"SecurityAlert\", 24\n];\nlet Freshness = union withsource=Table isfuzzy=true\n    SecurityEvent, WindowsEvent, Event, ASimDnsActivityLogs, W3CIISLog, MDCFileIntegrityMonitoringEvents, Syslog, CommonSecurityLog, SecurityAlert\n    | where TimeGenerated > ago(7d)\n    | summarize Rows24h = countif(TimeGenerated > ago(24h)), Rows7d = count(), Latest = max(TimeGenerated) by Table;\nlet Volume = Usage\n    | where TimeGenerated > ago(7d)\n    | where DataType in (\"SecurityEvent\", \"WindowsEvent\", \"Event\", \"ASimDnsActivityLogs\", \"W3CIISLog\", \"MDCFileIntegrityMonitoringEvents\", \"Syslog\", \"CommonSecurityLog\", \"SecurityAlert\")\n    | summarize GB7d = round(sum(Quantity) / 1000.0, 3), DailyAvgGB = round(sum(Quantity) / 1000.0 / 7.0, 3) by Table = DataType;\nExpectedTables\n| join kind=leftouter Freshness on Table\n| join kind=leftouter Volume on Table\n| extend\n    Rows24h = coalesce(Rows24h, 0),\n    Rows7d = coalesce(Rows7d, 0),\n    AgeHours = iff(isnotempty(Latest), round((now() - Latest) / 1h, 1), real(null)),\n    GB7d = coalesce(GB7d, 0.0),\n    DailyAvgGB = coalesce(DailyAvgGB, 0.0)\n| extend Status = case(\n    Rows7d == 0, \"NO_DATA_7D\",\n    AgeHours > MaxSilentHours, \"STALE\",\n    \"OK\"\n)\n| project Table, Status, Rows24h, Rows7d, Latest, AgeHours, MaxSilentHours, DailyAvgGB, GB7d\n| order by Status asc, Table asc",
+        "size": 1,
+        "title": "Group check: Server tables",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "group-servers"
+    }
+  ],
+  "isLocked": false,
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ],
+  "fromTemplateId": "sentinel-MicrosoftSecurityLoggingGuide-IngestionHealth"
+}

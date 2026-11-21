@@ -1,0 +1,39 @@
+id: f50852e8-fbd3-5d92-ac6c-cb6e06df0f9b
+name: '365 Copilot - Copilot activity by users who had a medium or high risk sign-in in the last 24h'
+description: |
+  - **Copilot activity from unusual regions or new IPs.** Join CopilotActivity against SigninLogs on ActorName == UserPrincipalName to spot Copilot usage originating outside expected corporate countries or immediately after an anomalous sign-in. Source guide: ai/microsoft-365-copilot/README.md.
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+  - connectorId: MicrosoftCopilot
+    dataTypes:
+      - CopilotActivity
+tactics:
+  - Discovery
+query: |
+  // Hunt: Copilot activity by users who had a medium or high risk sign-in in the last 24h
+  let risky_users = SigninLogs
+      | where TimeGenerated > ago(1d)
+      | where RiskLevelDuringSignIn in ("medium", "high")
+      | summarize LastRiskySignIn = max(TimeGenerated) by ActorName = tolower(UserPrincipalName);
+  CopilotActivity
+  | where TimeGenerated > ago(1d)
+  | extend ActorLower = tolower(ActorName)
+  | join kind=inner risky_users on $left.ActorLower == $right.ActorName
+  | where TimeGenerated >= LastRiskySignIn
+  | project TimeGenerated, ActorName, RecordType, AppHost, AgentName, SrcIpAddr, LastRiskySignIn
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SrcIpAddr
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: AgentName
+version: 1.0.0

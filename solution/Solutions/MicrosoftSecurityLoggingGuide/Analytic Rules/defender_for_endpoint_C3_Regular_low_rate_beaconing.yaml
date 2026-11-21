@@ -1,0 +1,43 @@
+id: e0012086-d92d-5740-8925-32920f156679
+name: 'Defender for Endpoint - Regular low-rate beaconing'
+description: |
+  MITRE: Command and Control T1071, T1571. At least 20 mostly-quiet 10-minute bins in a day means something is keeping a schedule. Source guide: endpoint/defender-for-endpoint/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - DeviceNetworkEvents
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CommandAndControl
+relevantTechniques:
+  - T1071
+  - T1571
+query: |
+  // CUSTOM - Steady low-rate outbound connections, typical of C2 beaconing
+  // Run over a 24-hour lookback.
+  // ASSUMPTION: thresholds are a starting point. Tune against a week of your own traffic.
+  DeviceNetworkEvents
+  | where TimeGenerated > ago(24h)
+  | where RemoteIPType == "Public"
+  | summarize Attempts = count()
+      by DeviceId, InitiatingProcessFileName, RemoteIP, bin(TimeGenerated, 10m)
+  | summarize QuietBins = countif(Attempts between 1 .. 5), Total = sum(Attempts)
+      by DeviceId, InitiatingProcessFileName, RemoteIP
+  | where QuietBins >= 20
+  | project DeviceId, InitiatingProcessFileName, RemoteIP, Total, QuietBins
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: AzureID
+        columnName: DeviceId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: RemoteIP
+version: 1.0.0
+kind: Scheduled

@@ -7,8 +7,9 @@
     "check:style": "node scripts/check-style.mjs",
     "check:mermaid": "node scripts/check-mermaid.mjs",
     "check:markdown": "markdownlint-cli2 \"**/*.md\"",
+    "check:sentinel": "python3 scripts/validate_sentinel.py",
     "check:drift": "node scripts/check-drift.mjs",
-    "check": "npm run check:markdown && npm run check:style && npm run check:mermaid"
+    "check": "npm run check:markdown && npm run check:style && npm run check:mermaid && npm run check:sentinel"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.0",

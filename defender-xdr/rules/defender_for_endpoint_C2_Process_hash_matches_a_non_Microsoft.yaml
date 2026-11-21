@@ -1,0 +1,30 @@
+id: bfd82975-d324-5faf-a695-4f83f6630330
+displayName: 'Defender for Endpoint - Process hash matches a non-Microsoft threat feed'
+description: |
+  MITRE: varies by indicator. Feed the watchlist from a TI platform or vendor feed. If your only indicator sources are already in Defender XDR, use a custom detection with FileProfile() there instead and skip the ingestion. Source guide: endpoint/defender-for-endpoint/README.md (C2).
+severity: Medium
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'endpoint/defender-for-endpoint/README.md'
+requiredTables:
+  - DeviceProcessEvents
+tactics:
+  - Discovery
+entityMappings:
+  - entityType: Device
+    identifier: DeviceId
+    columnName: DeviceId
+  - entityType: File
+    identifier: SHA1
+    columnName: SHA1
+recommendedActions: |
+  Quarantine the matched file, add the hash to Defender XDR custom indicators if confirmed malicious, and inspect parent process lineage.
+query: |
+  // Defender XDR custom detection: process SHA1 matches an organisation threat-intel hash list
+  // Replace the placeholder SHA1 list with your external feed or Defender XDR custom indicators.
+  let blocked_hashes = dynamic(["0000000000000000000000000000000000000000"]);
+  DeviceProcessEvents
+  | where Timestamp > ago(1h)
+  | where tolower(SHA1) in (blocked_hashes)
+  | project Timestamp, ReportId, DeviceId, DeviceName, AccountName, FileName,
+            FolderPath, ProcessCommandLine, InitiatingProcessFileName, SHA1

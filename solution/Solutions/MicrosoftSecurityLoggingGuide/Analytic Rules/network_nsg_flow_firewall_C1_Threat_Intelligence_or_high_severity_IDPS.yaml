@@ -1,0 +1,46 @@
+id: a39d068b-8c3d-59ed-a819-ec0c00f552e9
+name: 'Azure networking (VNet flow logs, Azure Firewall, WAF, DNS and DDoS) - Threat Intelligence or high-severity IDPS traffic allo...'
+description: |
+  Catches cases where Azure Firewall Threat Intelligence or IDPS is set to Alert-only mode (or a policy exception let traffic pass) and an internal workload actually reached a known malicious destination. MITRE: Command and Control T1071, Initial Access T1190. Source guide: azure/network-nsg-flow-firewall/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureFirewall
+    dataTypes:
+      - AZFWThreatIntel
+      - AZFWIdpsSignature
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - CommandAndControl
+relevantTechniques:
+  - T1071
+  - T1190
+query: |
+  // CUSTOM - Allowed traffic matching Azure Firewall Threat Intelligence or high-severity IDPS
+  // ASSUMPTION: Action value for alert-only/allowed traffic is "Alert" or "Allow" in your firewall policy.
+  // Inspect distinct Action values in AZFWThreatIntel and AZFWIdpsSignature before enabling.
+  let tiHits = AZFWThreatIntel
+      | where TimeGenerated > ago(1h)
+      | where Action !~ "Deny"
+      | project TimeGenerated, Signal = "ThreatIntel", Action, SourceIp, DestinationIp,
+                DestinationPort, Protocol, Target = coalesce(Fqdn, TargetUrl, DestinationIp),
+                Detail = ThreatDescription, Firewall = _ResourceId;
+  let idpsHits = AZFWIdpsSignature
+      | where TimeGenerated > ago(1h)
+      | where Severity == 1 and Action !~ "Deny"
+      | project TimeGenerated, Signal = "IDPS-High", Action, SourceIp, DestinationIp,
+                DestinationPort, Protocol, Target = DestinationIp,
+                Detail = strcat(Category, ": ", Description, " (Sig ", SignatureId, ")"),
+                Firewall = _ResourceId;
+  union tiHits, idpsHits
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIp
+version: 1.0.0
+kind: Scheduled

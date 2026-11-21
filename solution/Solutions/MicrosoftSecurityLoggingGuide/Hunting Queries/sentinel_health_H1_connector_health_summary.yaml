@@ -1,0 +1,28 @@
+id: b2b5059d-6ad3-5f9d-8e08-45bbcf21f439
+name: 'Sentinel Health - Data connector health summary over 7 days'
+description: |
+  Summarises data connector polling volume and failure counts over the last 7 days in SentinelHealth. Source guide: docs/sentinel-health.md.
+requiredDataConnectors:
+  - connectorId: MicrosoftSentinelHealth
+    dataTypes:
+      - SentinelHealth
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.008
+query: |
+  // Connector health at a glance over a week
+  SentinelHealth
+  | where TimeGenerated > ago(7d)
+  | where SentinelResourceType == 'DataConnector'
+  | summarize Events = count(),
+              Failures = countif(Status == 'Failure'),
+              Latest = arg_max(TimeGenerated, Status)
+      by Connector = SentinelResourceName
+  | order by Failures desc
+entityMappings:
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: Connector
+version: 1.0.0

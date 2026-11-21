@@ -1,0 +1,36 @@
+id: d02e2143-8711-5823-abd8-fabee32355d0
+name: 'Dataverse and Dynamics 365 - Unapproved Entra client app added in Dynamics 365 F&O'
+description: |
+  The out-of-box F&O rule focuses on mappings to self or privileged accounts. Alerting on any unapproved SysAADClientTable change catches silent backdoor integrations mapped to low-privilege or service accounts. MITRE: Persistence T1098. Source guide: business-apps/dataverse-dynamics-365/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Dynamics365
+    dataTypes:
+      - FinanceOperationsActivity_CL
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - Any new Microsoft Entra ID application mapping created in F&O outside an approved admin list
+  // ASSUMPTION: verify exact column names (TableName_s, Operation_s, UserId_s) in your FinanceOperationsActivity_CL schema first.
+  let approved_fo_admins = dynamic(["fo-admin@yourdomain.gov.au"]);
+  FinanceOperationsActivity_CL
+  | where TimeGenerated > ago(1h)
+  | where tostring(column_ifexists("TableName_s", "")) =~ "SysAADClientTable"
+  | where tostring(column_ifexists("Operation_s", "")) in~ ("Insert", "Update")
+  | extend Actor = tostring(column_ifexists("UserId_s", ""))
+  | where Actor !in~ (approved_fo_admins)
+  | project TimeGenerated, Actor, TableName = tostring(column_ifexists("TableName_s", "")), Operation = tostring(column_ifexists("Operation_s", ""))
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

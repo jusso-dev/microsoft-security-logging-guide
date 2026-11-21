@@ -1,0 +1,44 @@
+id: b968c72c-9198-5135-bb16-1fd5b92f0b75
+name: 'Amazon Web Services (optional) - IAM access key created for another user or admin policy attached'
+description: |
+  MITRE: Persistence T1098.001 (Additional Cloud Credentials) and T1098.003 (Additional Cloud Roles). Source guide: multi-cloud/aws/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AWS
+    dataTypes:
+      - AWSCloudTrail
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1098.001
+  - T1098.003
+query: |
+  // CUSTOM - Detects long-lived access key creation for a different IAM user or AdministratorAccess attachment
+  // ASSUMPTION: RequestParameters is JSON text containing userName and policyArn fields.
+  AWSCloudTrail
+  | where TimeGenerated > ago(1h)
+  | where EventName in ("CreateAccessKey", "AttachUserPolicy", "AttachRolePolicy")
+  | where isempty(ErrorCode)
+  | extend Params = parse_json(RequestParameters)
+  | extend TargetUser = tostring(Params.userName),
+           PolicyArn = tostring(Params.policyArn)
+  | where (EventName == "CreateAccessKey" and isnotempty(TargetUser) and TargetUser != UserIdentityUserName)
+      or (EventName in ("AttachUserPolicy", "AttachRolePolicy") and PolicyArn has "AdministratorAccess")
+  | project TimeGenerated, RecipientAccountId, EventName, Actor = UserIdentityArn,
+            TargetUser, PolicyArn, SourceIpAddress
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIpAddress
+version: 1.0.0
+kind: Scheduled

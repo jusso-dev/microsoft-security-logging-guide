@@ -1,0 +1,41 @@
+id: 481ad9c3-3ccd-5891-a72d-e636970db6f7
+name: 'Active Directory Federation Services (AD FS) - Directory change on the AD FS configuration container'
+description: |
+  The AD FS configuration, including token-signing and token-decryption certificate references, lives in AD under the ADFS container. A 5136 change there is either the annual AutoCertificateRollover or an attacker adding their own signing material. Baseline the change rate for a month, then alert on anything outside it. Requires Audit Directory Service Changes and the AD FS container auditing SACL, both covered by MDI's automatic auditing or the manual steps (AD FS container auditing). MITRE: Credential Access T1552.004 and Persistence T1098. Expect roughly one change per certificate rollover per year, so a burst is a compromise signal, not tuning noise. Source guide: identity/adfs/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - CredentialAccess
+  - Collection
+relevantTechniques:
+  - T1098
+  - T1552.004
+query: |
+  // CUSTOM - directory service change touching the AD FS configuration container
+  // ASSUMPTION: AD FS configuration objects carry "ADFS" in the ObjectName of 5136 events.
+  // Confirm with: SecurityEvent | where EventID == 5136 | take 20 | project ObjectName, OperationType
+  SecurityEvent
+  | where TimeGenerated > ago(24h)
+  | where EventID == 5136
+  | where ObjectName has_cs "ADFS"
+  | project TimeGenerated, Computer, SubjectUserName, ObjectName, OperationType, ObjectDN
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: SubjectUserName
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

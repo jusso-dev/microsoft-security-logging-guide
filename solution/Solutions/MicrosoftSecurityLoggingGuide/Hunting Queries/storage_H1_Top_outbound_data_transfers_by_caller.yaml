@@ -1,0 +1,31 @@
+id: fc6313b3-7fd5-59aa-95af-a0e81965bbfb
+name: 'Azure Storage - Top outbound data transfers by caller IP and authentication method over 7 days'
+description: |
+  - **Account key usage audit.** List every storage account still seeing AuthenticationType == "AccountKey" so platform teams can migrate apps to Entra ID managed identities and disable shared key access. Source guide: azure/storage/README.md.
+requiredDataConnectors:
+  - connectorId: AzureStorageAccount
+    dataTypes:
+      - StorageBlobLogs
+tactics:
+  - Exfiltration
+query: |
+  // Hunt: Top outbound data transfers by caller IP and authentication method over 7 days
+  StorageBlobLogs
+  | where TimeGenerated > ago(7d)
+  | where Category == "StorageRead" and StatusCode == 200
+  | summarize TotalMB = round(sum(ResponseBodySize) / 1048576.0, 2),
+              Reads = count()
+              by AccountName, AuthenticationType, CallerIpAddress
+  | where TotalMB >= 500
+  | order by TotalMB desc
+  | take 50
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: AccountName
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+version: 1.0.0

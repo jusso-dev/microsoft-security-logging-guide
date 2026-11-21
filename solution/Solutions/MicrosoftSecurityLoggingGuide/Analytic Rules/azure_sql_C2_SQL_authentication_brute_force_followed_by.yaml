@@ -1,0 +1,54 @@
+id: 20c198e7-da3f-52e9-9298-2cb6a20b26d8
+name: 'Azure SQL Database and Managed Instance - SQL authentication brute force followed by success'
+description: |
+  Catches a client IP spraying or brute-forcing database logins and then succeeding within the same hour, which complements Defender for SQL alerts when auditing is active. MITRE: Credential Access, Brute Force T1110. Source guide: azure/azure-sql/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureDiagnostics
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1110
+query: |
+  // CUSTOM - Multiple failed SQL authentications followed by a success from the same client IP
+  // ASSUMPTION: FAILED_DATABASE_AUTHENTICATION_GROUP and SUCCESSFUL_DATABASE_AUTHENTICATION_GROUP are enabled (on by default).
+  let lookback = 1h;
+  let failedThreshold = 15;
+  let failures = AzureDiagnostics
+      | where TimeGenerated > ago(lookback)
+      | where Category == "SQLSecurityAuditEvents"
+      | where action_name_s == "DATABASE AUTHENTICATION FAILED"
+      | summarize FailedCount = count(), FirstFail = min(TimeGenerated), LastFail = max(TimeGenerated),
+                  TargetedUsers = make_set(server_principal_name_s, 10)
+          by client_ip_s, LogicalServerName_s, database_name_s
+      | where FailedCount >= failedThreshold;
+  let successes = AzureDiagnostics
+      | where TimeGenerated > ago(lookback)
+      | where Category == "SQLSecurityAuditEvents"
+      | where action_name_s == "DATABASE AUTHENTICATION SUCCEEDED"
+      | summarize SuccessCount = count(), FirstSuccess = min(TimeGenerated),
+                  SucceededUsers = make_set(server_principal_name_s, 10)
+          by client_ip_s, LogicalServerName_s, database_name_s;
+  failures
+  | join kind=inner successes on client_ip_s, LogicalServerName_s, database_name_s
+  | where FirstSuccess >= FirstFail
+  | project FirstFail, FirstSuccess, LogicalServerName_s, database_name_s, client_ip_s,
+            FailedCount, SuccessCount, TargetedUsers, SucceededUsers
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: LogicalServerName_s
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: client_ip_s
+version: 1.0.0
+kind: Scheduled

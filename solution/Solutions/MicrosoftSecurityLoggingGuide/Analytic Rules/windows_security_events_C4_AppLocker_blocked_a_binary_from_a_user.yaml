@@ -1,0 +1,40 @@
+id: 932d9691-3dc1-5ede-8194-f8538124c6df
+name: 'Windows security event logs (clients) - AppLocker blocked a binary from a user-writable path'
+description: |
+  MITRE: Defense Evasion T1218 or Execution T1204 depending on the binary. An AppLocker block means your control worked. A block in a staging path means something tried anyway. Source guide: endpoint/windows-security-events/README.md (C4).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+  - DefenseEvasion
+relevantTechniques:
+  - T1204
+  - T1218
+query: |
+  // CUSTOM - AppLocker block events where the blocked file sits in a user-writable path
+  // ASSUMPTION: your event set includes 8004 and 8006. Minimal and Common both do.
+  // ASSUMPTION: AppLocker events map the file path into FilePath. Check one real event first.
+  SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID in (8004, 8006)
+  | where FilePath has_any (":\\Users\\", ":\\ProgramData\\", ":\\Windows\\Temp\\")
+  | project TimeGenerated, Computer, SubjectUserName, EventID, FilePath
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: SubjectUserName
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,47 @@
+id: b3872088-7632-501d-85a8-d58c8d0ad8ff
+name: 'Azure Key Vault - Key Vault purge or firewall / access policy weakening'
+description: |
+  Catching VaultPatch, VaultPut, SecretPurge and KeyPurge helps stop attackers from lowering network restrictions or permanently destroying encryption keys. MITRE: Impact and Defense Evasion, Data Destruction T1485 and Impair Defenses T1562. Source guide: azure/key-vault/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureKeyVault
+    dataTypes:
+      - AZKVAuditLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+  - Impact
+relevantTechniques:
+  - T1485
+  - T1562
+query: |
+  // CUSTOM - Key Vault purge or configuration change outside approved change identities
+  // ASSUMPTION: OperationName values match Key Vault audit log action names.
+  // Pin exact OperationName strings in your tenant with: AZKVAuditLogs | distinct OperationName
+  let approved_cicd = dynamic(["iac-pipeline-spn"]);
+  AZKVAuditLogs
+  | where TimeGenerated > ago(1h)
+  | where OperationName in ("SecretPurge", "KeyPurge", "CertificatePurge", "VaultPatch", "VaultPut", "KeyBackup", "SecretBackup")
+  | where ResultType =~ "Success" or HttpStatusCode in (200, 202)
+  | extend Caller = tostring(Identity)
+  | where not(Caller has_any (approved_cicd))
+  | project TimeGenerated, _ResourceId, OperationName, Caller, CallerIpAddress, ClientInfo
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Caller
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: _ResourceId
+version: 1.0.0
+kind: Scheduled

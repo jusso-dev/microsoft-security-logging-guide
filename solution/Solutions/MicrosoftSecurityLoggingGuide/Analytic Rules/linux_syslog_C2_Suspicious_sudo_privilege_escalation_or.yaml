@@ -1,0 +1,35 @@
+id: e458a13a-f56d-530d-bbf3-d47c7bfc0fb3
+name: 'Linux (Syslog, CEF and auditd) - Suspicious sudo privilege escalation or repeated auth failures'
+description: |
+  MITRE: Privilege Escalation T1548.003 (Abuse Elevation Control Mechanism: Sudo and Sudo Caching). Source guide: servers/linux-syslog/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: SyslogAma
+    dataTypes:
+      - Syslog
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - PrivilegeEscalation
+relevantTechniques:
+  - T1548.003
+query: |
+  // CUSTOM - User not in sudoers attempting sudo, or repeated sudo authentication failures
+  // ASSUMPTION: sudo logs to auth or authpriv with ProcessName == "sudo".
+  Syslog
+  | where TimeGenerated > ago(1h)
+  | where Facility in ("auth", "authpriv") and ProcessName == "sudo"
+  | where SyslogMessage has_any ("user NOT in sudoers", "authentication failure", "incorrect password attempts")
+  | summarize Events = count(), Samples = make_set(SyslogMessage, 5) by Computer, bin(TimeGenerated, 1h)
+  | where Events >= 3 or tostring(Samples) has "NOT in sudoers"
+  | project TimeGenerated, Computer, Events, Samples
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

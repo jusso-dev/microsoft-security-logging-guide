@@ -1,0 +1,32 @@
+id: 945ea2d7-e61a-573e-8205-4df1f37963b6
+name: 'Intune - Confirm with a sample before relying on the join.'
+description: |
+  - **Risky sign-in then remote action.** Join Entra ID risk to the next Intune action by the same account. Needs Entra ID P2 for risk fields. Source guide: endpoint/intune/README.md.
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+  - connectorId: Intune
+    dataTypes:
+      - IntuneAuditLogs
+tactics:
+  - Discovery
+query: |
+  // ASSUMPTION: Identity holds the actor's UPN, matching SigninLogs UserPrincipalName.
+  // Confirm with a sample before relying on the join.
+  let risky = SigninLogs
+      | where TimeGenerated > ago(1d)
+      | where RiskLevelDuringSignIn in ("medium", "high")
+      | summarize RiskySignIn = max(TimeGenerated) by UserPrincipalName = tolower(UserPrincipalName);
+  IntuneAuditLogs
+  | where TimeGenerated > ago(1d)
+  | extend UserPrincipalName = tolower(Identity)
+  | join kind=inner risky on UserPrincipalName
+  | where TimeGenerated > RiskySignIn
+  | project TimeGenerated, OperationName, Identity, RiskySignIn
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Identity
+version: 1.0.0

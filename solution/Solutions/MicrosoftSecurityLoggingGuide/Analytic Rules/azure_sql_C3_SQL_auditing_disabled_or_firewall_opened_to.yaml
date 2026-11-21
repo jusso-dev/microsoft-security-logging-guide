@@ -1,0 +1,44 @@
+id: 4d7d65ae-28af-5605-928b-68085783825d
+name: 'Azure SQL Database and Managed Instance - SQL auditing disabled or firewall opened to all IPs'
+description: |
+  Data-plane auditing can't catch someone turning auditing off or adding a 0.0.0.0 firewall rule. Monitor AzureActivity for control-plane tampering. Filter out your approved Terraform or Bicep deployment service principals once you baseline normal pipeline activity. MITRE: Defense Evasion, Impair Defenses T1562.008. Source guide: azure/azure-sql/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.008
+query: |
+  // CUSTOM - Azure SQL auditing disabled or permissive firewall rule added in AzureActivity
+  // ASSUMPTION: AzureActivity diagnostic setting is connected for all subscriptions hosting Azure SQL.
+  AzureActivity
+  | where TimeGenerated > ago(1h)
+  | where ActivityStatusValue in ("Success", "Succeeded")
+  | where OperationNameValue has_any (
+      "Microsoft.Sql/servers/auditingSettings/write",
+      "Microsoft.Sql/servers/databases/auditingSettings/write",
+      "Microsoft.Sql/servers/firewallRules/write",
+      "Microsoft.Sql/servers/administrators/write"
+  )
+  | extend Props = parse_json(Properties)
+  | project TimeGenerated, Caller, CallerIpAddress, SubscriptionId, ResourceGroup,
+            OperationNameValue, Resource = _ResourceId, Props
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Caller
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+version: 1.0.0
+kind: Scheduled

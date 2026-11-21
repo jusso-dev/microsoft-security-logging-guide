@@ -1,0 +1,37 @@
+id: a5cc7177-f709-5080-8dc1-240c5a1e14aa
+name: 'Intune - Device script created, changed or assigned'
+description: |
+  Platform scripts run PowerShell or shell on managed devices, optionally as SYSTEM or root. A pushed script is remote code execution on every assigned device, and macOS custom attributes re-run every 8 hours (Microsoft Learn). Raise severity when the assignment targets the All Users or All Devices groups. ASSUMPTION: the target group name appears in the Properties JSON. Inspect a sample before relying on it. MITRE: Execution T1059.001 for PowerShell scripts and T1059.004 for macOS shell scripts, plus Persistence where a run frequency is set. Source guide: endpoint/intune/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Intune
+    dataTypes:
+      - IntuneAuditLogs
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+  - Persistence
+relevantTechniques:
+  - T1059.001
+  - T1059.004
+query: |
+  // CUSTOM - Platform script or remediation created, changed or assigned
+  // ASSUMPTION: script operations carry Script in OperationName. Pin the exact values with
+  // validation query 2 and replace the has filter with your OperationName list.
+  IntuneAuditLogs
+  | where TimeGenerated > ago(24h)
+  | where OperationName has "script"
+  | summarize FirstSeen = min(TimeGenerated), Sample = any(Properties)
+              by OperationName, Actor = Identity, CorrelationId
+  | project FirstSeen, OperationName, Actor, Sample
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

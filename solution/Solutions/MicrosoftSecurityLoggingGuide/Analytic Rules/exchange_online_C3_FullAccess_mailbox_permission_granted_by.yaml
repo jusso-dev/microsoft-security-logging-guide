@@ -1,0 +1,49 @@
+id: 1fd6018a-0098-5b0e-9abc-6d5e08cc1b75
+name: 'Exchange Online - FullAccess mailbox permission granted by someone other than a service account'
+description: |
+  FullAccess lets a delegate read and manage another person's mailbox, a favourite persistence move after account takeover. Microsoft documents that NT AUTHORITY\SYSTEM and Administrator@apcprd03.prod.outlook.com appear in these records for routine maintenance, so keep the exclusions (audit log activities). MITRE: Persistence T1098. Source guide: email-collab/exchange-online/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - Add-MailboxPermission granting FullAccess. The OOB rare operations rule
+  // fires on every Add-MailboxPermission, so this filters to FullAccess grants by
+  // humans. Microsoft service accounts perform documented maintenance with this
+  // cmdlet and are excluded.
+  // ASSUMPTION: The system account strings match the exclusions Microsoft uses in
+  // the OOB RareOfficeOperations rule and the documented system account notes.
+  let system_noise = dynamic(["NT AUTHORITY", "NT SERVICE", "devilfish-applicationaccount",
+                              "apcprd03.prod.outlook.com"]);
+  // ASSUMPTION: the target mailbox identity for Add-MailboxPermission is carried in
+  // OfficeObjectId, matching how the OOB rules use it for Exchange events. The table
+  // reference describes OfficeObjectId as SharePoint oriented, so check one record
+  // in your tenant and switch to the right column if needed.
+  OfficeActivity
+  | where TimeGenerated > ago(24h)
+  | where Operation =~ "Add-MailboxPermission"
+  | where Parameters has "FullAccess"
+  | where UserId !has_any (system_noise)
+  | extend TargetMailbox = tostring(split(tostring(OfficeObjectId), "/")[0])
+  | project TimeGenerated, UserId, ClientIP, Parameters, TargetMailbox
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

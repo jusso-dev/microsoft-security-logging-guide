@@ -1,0 +1,42 @@
+id: 5e04dc2b-6692-5958-8034-23af31fd7624
+name: 'Power Platform (Power Apps, Power Automate, Power Platform admin) - Tenant isolation off or environment security group changed'
+description: |
+  The out-of-box Dataverse guest exfiltration rule only fires when exfiltration alerts follow. Disabling tenant isolation or removing an environment security group warrants an immediate alert on its own. MITRE: Defense Evasion T1562. Source guide: business-apps/power-platform/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: PowerPlatformAdmin
+    dataTypes:
+      - PowerPlatformAdminActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+  - Collection
+  - Exfiltration
+relevantTechniques:
+  - T1562
+query: |
+  // CUSTOM - Tenant isolation turned off, or an environment's security group changed
+  PowerPlatformAdminActivity
+  | where TimeGenerated > ago(1h)
+  | where (EventOriginalType == "TenantIsolationOperation"
+           and PropertyCollection has "powerplatform.analytics.resource.tenant.isolation_policy.enabled")
+       or (EventOriginalType == "EnvironmentPropertyChange"
+           and PropertyCollection has "Property: SecurityGroupId")
+  | mv-expand PropertyCollection
+  | extend Name = tostring(PropertyCollection.Name), Value = tostring(PropertyCollection.Value)
+  | summarize Props = make_bag(bag_pack(Name, Value)) by TimeGenerated, EventOriginalUid, EventOriginalType, ActorName
+  | extend IsolationEnabled = tostring(Props["powerplatform.analytics.resource.tenant.isolation_policy.enabled"]),
+           EnvironmentUrl = tostring(Props["powerplatform.analytics.resource.environment.url"])
+  | where EventOriginalType == "EnvironmentPropertyChange" or IsolationEnabled =~ "False"
+  | project TimeGenerated, ActorName, EventOriginalType, IsolationEnabled, EnvironmentUrl
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+version: 1.0.0
+kind: Scheduled

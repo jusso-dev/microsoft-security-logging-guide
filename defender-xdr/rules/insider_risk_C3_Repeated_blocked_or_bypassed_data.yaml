@@ -1,0 +1,32 @@
+id: cdf77c74-31a1-514a-9bc3-18ca5323d9ab
+displayName: 'Purview Insider Risk Management - Repeated blocked or bypassed data security actions on unmanaged devices'
+description: |
+  Defender XDR advanced hunting custom detection on DataSecurityEvents targeting unmanaged devices where DLP policies triggered in warn, bypass or block mode. MITRE: Exfiltration T1048. Source guide: data-security/insider-risk/README.md (C3).
+severity: Medium
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'data-security/insider-risk/README.md'
+requiredTables:
+  - DataSecurityEvents
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1048
+entityMappings:
+  - entityType: Device
+    identifier: DeviceId
+    columnName: DeviceId
+recommendedActions: |
+  Review matched DLP policies on the unmanaged device and coordinate with Purview Insider Risk Management before taking containment actions.
+query: |
+  // Defender XDR custom detection: repeated blocked or bypassed DLP matches on unmanaged devices
+  // ASSUMPTION: DlpPolicyEnforcementMode 2 = Warn, 3 = Warn and bypass, 4 = Block.
+  DataSecurityEvents
+  | where Timestamp > ago(1h)
+  | where IsManagedDevice == false
+  | where DlpPolicyEnforcementMode in (2, 3, 4)
+  | summarize Events = count(), Policies = make_set(DlpPolicyMatchInfo, 10),
+              Timestamp = max(Timestamp), ReportId = any(ReportId)
+      by DeviceName, DeviceId, DlpPolicyEnforcementMode
+  | where Events >= 3
+  | project Timestamp, ReportId, DeviceId, DeviceName, DlpPolicyEnforcementMode, Events, Policies

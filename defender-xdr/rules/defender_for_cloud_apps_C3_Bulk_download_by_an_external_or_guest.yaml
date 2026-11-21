@@ -1,0 +1,33 @@
+id: d9d4c2b3-e700-50a0-80d2-2522916d39c8
+displayName: 'Defender for Cloud Apps - Bulk download by an external or guest user'
+description: |
+  MITRE: Exfiltration T1567. Two candidates from the issue are deliberately not included as custom rules. Impossible travel in cloud app use is fully covered by the MDCA built-in detection, which suppresses VPN and known-location false positives better than a hand-written join. Unusual OAuth app downloads are covered by the built-in Suspicious OAuth app file download activities plus app governance alerts, and rebuilding them in Sentinel would double-alert on the same event. Source guide: cloud-apps/defender-for-cloud-apps/README.md (C3).
+severity: High
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'cloud-apps/defender-for-cloud-apps/README.md'
+requiredTables:
+  - CloudAppEvents
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1567
+entityMappings:
+  - entityType: User
+    identifier: AccountObjectId
+    columnName: AccountObjectId
+recommendedActions: |
+  Audit the guest account's access permissions and downloaded files, and confirm with the business sponsor.
+query: |
+  // Defender XDR custom detection: bulk downloads by an external or guest user
+  // ASSUMPTION: verify IsExternalUser coverage across your connected SaaS apps.
+  let hourly_downloads = 100;
+  CloudAppEvents
+  | where Timestamp > ago(1h)
+  | where IsExternalUser == true
+  | where ActionType has_cs "ownload" or ActivityType has_cs "ownload"
+  | summarize Timestamp = max(Timestamp), ReportId = any(ReportId),
+              Downloads = count(), Apps = make_set(Application, 5), FirstSeen = min(Timestamp)
+      by AccountObjectId, AccountDisplayName
+  | where Downloads > hourly_downloads
+  | project Timestamp, ReportId, FirstSeen, AccountObjectId, AccountDisplayName, Downloads, Apps

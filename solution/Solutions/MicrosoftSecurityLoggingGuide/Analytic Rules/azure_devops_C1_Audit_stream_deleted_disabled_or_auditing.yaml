@@ -1,0 +1,45 @@
+id: ee9f5cdb-d314-557f-a72f-b044fec7943b
+name: 'Azure DevOps - Audit stream deleted, disabled or auditing policy turned off'
+description: |
+  An attacker with Project Collection Administrator access often turns off auditing or removes the SIEM stream before tampering with production pipelines. MITRE ATT&CK: Defense Evasion T1562.008 (Disable or Modify Cloud Logs). Source guide: devops/azure-devops/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureDevOpsAuditing
+    dataTypes:
+      - AzureDevOpsAuditing
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+  - Collection
+relevantTechniques:
+  - T1562.008
+query: |
+  // CUSTOM - Azure DevOps audit stream modified/deleted or Log Audit Events disabled
+  // ASSUMPTION: OperationName values match Azure DevOps Auditing event names for AuditLog and Policy.
+  // Confirm exact OperationName strings in your tenant with:
+  //   AzureDevOpsAuditing | where TimeGenerated > ago(30d) | where Area in ("AuditLog", "Policy") | distinct OperationName
+  AzureDevOpsAuditing
+  | where TimeGenerated > ago(1h)
+  | where OperationName in~ (
+      "AuditLog.DeleteStream",
+      "AuditLog.UpdateStream",
+      "AuditLog.DisableStream",
+      "Policy.PolicyValueUpdated"
+  )
+  | where OperationName !~ "Policy.PolicyValueUpdated" or Details has_any ("LogAuditEvents", "Audit")
+  | project TimeGenerated, ActorUPN, ActorDisplayName, IpAddress, UserAgent, Area, OperationName, Details, Data
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorUPN
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IpAddress
+version: 1.0.0
+kind: Scheduled

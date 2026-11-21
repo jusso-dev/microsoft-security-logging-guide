@@ -1,0 +1,34 @@
+id: 5da965d2-de09-59a1-a4f4-fb4ba1b8c79a
+displayName: 'Defender for Cloud Apps - Mass delete in a non-Microsoft SaaS app'
+description: |
+  MITRE: Impact T1485. Source guide: cloud-apps/defender-for-cloud-apps/README.md (C2).
+severity: High
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'cloud-apps/defender-for-cloud-apps/README.md'
+requiredTables:
+  - CloudAppEvents
+tactics:
+  - Impact
+relevantTechniques:
+  - T1485
+entityMappings:
+  - entityType: User
+    identifier: AccountObjectId
+    columnName: AccountObjectId
+recommendedActions: |
+  Confirm whether the bulk deletions in non-Microsoft SaaS apps are legitimate maintenance; suspend the account and check backup recovery if malicious.
+query: |
+  // Defender XDR custom detection: burst of delete events in non-Microsoft SaaS apps
+  // ASSUMPTION: pin exact Application strings against your connected apps before enabling.
+  let hourly_deletes = 100;
+  let m365_apps = dynamic(["Microsoft SharePoint Online", "Microsoft OneDrive for Business", "Microsoft Office 365"]);
+  CloudAppEvents
+  | where Timestamp > ago(1h)
+  | where ActionType has_cs "elete" or ActivityType has_cs "elete"
+  | where Application !in (m365_apps)
+  | summarize Timestamp = max(Timestamp), ReportId = any(ReportId),
+              Deletes = count(), Objects = dcount(ObjectId), Apps = make_set(Application, 5)
+      by AccountObjectId, bin(Timestamp, 1h)
+  | where Deletes > hourly_deletes
+  | project Timestamp, ReportId, AccountObjectId, Deletes, Objects, Apps

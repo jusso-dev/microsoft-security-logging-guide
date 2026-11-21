@@ -1,0 +1,49 @@
+id: a41d9461-dd5e-5c77-95b0-6f9ae6e7c581
+name: 'SharePoint Online and OneDrive - Anonymous link created or used on a sensitive site'
+description: |
+  Anyone with the link can read the resource without authenticating, so a link on a finance or board site deserves an alert even when creation is legitimate. Use AnonymousLinkUsed rows to see who consumed it, including their IP. MITRE: Exfiltration T1567.002, Collection T1213. Source guide: email-collab/sharepoint-onedrive/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+  - Exfiltration
+relevantTechniques:
+  - T1213
+  - T1567.002
+query: |
+  // CUSTOM - Anonymous link activity on sites you care about
+  // Feed the list from a watchlist of sensitive site URLs.
+  let sensitive_sites = dynamic(["https://yourtenant.sharepoint.com/sites/finance",
+                                 "https://yourtenant.sharepoint.com/sites/board"]);
+  OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where Operation in ("AnonymousLinkCreated", "AnonymousLinkUsed", "AnonymousLinkUpdated")
+  | where tostring(Site_Url) in (sensitive_sites)
+  | project TimeGenerated, Operation, UserId, Site_Url, SourceFileName, ClientIP
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+  - entityType: URL
+    fieldMappings:
+      - identifier: Url
+        columnName: Site_Url
+  - entityType: File
+    fieldMappings:
+      - identifier: Name
+        columnName: SourceFileName
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,38 @@
+id: 08b5961d-3d07-5b96-8d05-34524e73bdfa
+name: 'SQL Server (on-premises and IaaS) - SQL Server audit disabled, modified or dropped'
+description: |
+  MITRE: Defense Evasion T1562.001 (Impair Defenses: Disable or Modify Tools). Source guide: servers/sql-server/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.001
+query: |
+  // CUSTOM - Detects tampering with SQL Server Audit or Audit Specifications
+  // ASSUMPTION: AUDIT_CHANGE_GROUP is included in your Server Audit Specification
+  // and EventData contains "action_id:" and "statement:" key-value pairs as emitted by SQL Server 33205.
+  SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID == 33205
+  | extend ActionId = trim(" ", extract(@"action_id:([^\r\n]+)", 1, EventData)),
+           Principal = trim(" ", extract(@"server_principal_name:([^\r\n]+)", 1, EventData)),
+           Statement = trim(" ", extract(@"statement:([^\r\n]+)", 1, EventData))
+  | where ActionId in ("AUSC", "AUDD", "AUSF")
+      or Statement has_any ("ALTER SERVER AUDIT", "DROP SERVER AUDIT", "STATE = OFF")
+  | project TimeGenerated, Computer, Principal, ActionId, Statement
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

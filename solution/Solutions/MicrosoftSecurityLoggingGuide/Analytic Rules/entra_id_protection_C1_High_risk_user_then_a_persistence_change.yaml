@@ -1,0 +1,49 @@
+id: 3bbea2d9-4564-54b6-af93-93121511a495
+name: 'Entra ID Protection (risk detections) - High risk user then a persistence change'
+description: |
+  An attacker who just got into an account adds an authentication method or consents an app. The Entra ID solution covers MFA changes after suspicious sign-ins, but not the risk table join, which works even when no alert fired. MITRE: Persistence T1098, account manipulation, and T1098.005, device registration or MFA registration abuse. Source guide: identity/entra-id-protection/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectoryIdentityProtection
+    dataTypes:
+      - AADRiskyUsers
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - AuditLogs
+queryFrequency: 1d
+queryPeriod: 3d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1098
+  - T1098.005
+query: |
+  // CUSTOM - Risky user followed by a credential or consent change inside 3 days
+  // The actor extraction mirrors Microsoft's own AuditLogs rules.
+  // ASSUMPTION: OperationName values. Pin exact strings first:
+  //   AuditLogs | where TimeGenerated > ago(30d)
+  //   | where OperationName has "consent" or OperationName has "method" or OperationName has "credential"
+  //   | distinct OperationName
+  let risky = AADRiskyUsers
+      | where TimeGenerated > ago(3d)
+      | where RiskLevel in ("medium", "high") and RiskState == "atRisk"
+      | summarize RiskSeen = max(TimeGenerated) by UserPrincipalName = tolower(UserPrincipalName);
+  AuditLogs
+  | where TimeGenerated > ago(3d)
+  | extend Actor = iff(isnotempty(tostring(InitiatedBy.user.userPrincipalName)),
+                       tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName))
+  | extend UserPrincipalName = tolower(Actor)
+  | join kind=inner risky on UserPrincipalName
+  | where TimeGenerated > RiskSeen
+  | where OperationName has_any ("consent", "method", "credential", "role")
+  | project TimeGenerated, OperationName, Actor, RiskSeen, TargetResources
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

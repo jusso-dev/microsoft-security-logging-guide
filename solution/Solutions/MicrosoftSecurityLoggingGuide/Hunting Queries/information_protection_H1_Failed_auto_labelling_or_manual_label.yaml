@@ -1,0 +1,26 @@
+id: 03482a61-90fc-5a59-bf39-5f30a9561369
+name: 'Purview Information Protection - Failed auto-labelling or manual label applications in OfficeActivity'
+description: |
+  - **Failed auto-labelling or manual label applications in OfficeActivity** (catches broken policies or files evading encryption): Source guide: data-security/information-protection/README.md.
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+tactics:
+  - Discovery
+query: |
+  OfficeActivity
+  | where TimeGenerated > ago(7d)
+  | where Operation in ("FileSensitivityLabelApplyFailed", "FileSensitivityLabelChangeFailed")
+  | summarize Failures = count() by Operation, OfficeWorkload, UserId
+  | order by Failures desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: OfficeWorkload
+version: 1.0.0

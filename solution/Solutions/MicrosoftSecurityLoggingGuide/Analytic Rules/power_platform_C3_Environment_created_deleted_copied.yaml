@@ -1,0 +1,44 @@
+id: cab0231e-a1bf-522c-adb7-932d6a0204b8
+name: 'Power Platform (Power Apps, Power Automate, Power Platform admin) - Environment created, deleted, copied, converted or moved'
+description: |
+  Microsoft Learn lists friendly names (for example Provisioned environment, Copied environment, Moved environment) rather than raw EventOriginalType values, so pin the exact strings from validation query 2. Treat a copy or move of a production environment as High severity. MITRE: Persistence T1578, Exfiltration T1537. Source guide: business-apps/power-platform/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: PowerPlatformAdmin
+    dataTypes:
+      - PowerPlatformAdminActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - Collection
+  - Exfiltration
+  - DefenseEvasion
+relevantTechniques:
+  - T1537
+  - T1578
+query: |
+  // CUSTOM - Environment lifecycle (created, deleted, copied, converted, moved, restored)
+  // ASSUMPTION: lifecycle operations carry "Environment" in EventOriginalType.
+  // Run validation query 2 first and replace the has filter with the exact names your tenant emits.
+  PowerPlatformAdminActivity
+  | where TimeGenerated > ago(1h)
+  | where EventOriginalType has "Environment"
+  | where EventOriginalType !in ("EnvironmentPropertyChange", "EnvironmentAddedToEnvironmentGroup",
+                                 "EnvironmentRemovedFromEnvironmentGroup")
+  | mv-expand PropertyCollection
+  | extend Name = tostring(PropertyCollection.Name), Value = tostring(PropertyCollection.Value)
+  | summarize Props = make_bag(bag_pack(Name, Value)) by TimeGenerated, EventOriginalUid, EventOriginalType, ActorName
+  | extend EnvironmentId = tostring(Props["powerplatform.analytics.resource.environment.id"]),
+           EnvironmentUrl = tostring(Props["powerplatform.analytics.resource.environment.url"])
+  | project TimeGenerated, ActorName, EventOriginalType, EnvironmentId, EnvironmentUrl
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+version: 1.0.0
+kind: Scheduled

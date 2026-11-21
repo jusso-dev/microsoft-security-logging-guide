@@ -1,0 +1,32 @@
+id: 71831fe1-b9b2-5c2b-9c4e-15af4b904b9e
+displayName: 'Defender for Cloud Apps - Unusual download volume from a web session'
+description: |
+  MITRE: Exfiltration T1567. Source guide: cloud-apps/defender-for-cloud-apps/README.md (C1).
+severity: High
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'cloud-apps/defender-for-cloud-apps/README.md'
+requiredTables:
+  - CloudAppEvents
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1567
+entityMappings:
+  - entityType: User
+    identifier: AccountObjectId
+    columnName: AccountObjectId
+recommendedActions: |
+  Inspect the downloaded objects and source IP/session; revoke Entra ID sessions if data exfiltration is suspected.
+query: |
+  // Defender XDR custom detection: hard threshold on cloud app downloads by one account in an hour
+  // ASSUMPTION: download ActionType values vary by SaaS connector; validate against 7 days of CloudAppEvents.
+  let hourly_downloads = 300;
+  CloudAppEvents
+  | where Timestamp > ago(1h)
+  | where ActionType has_cs "ownload" or ActivityType has_cs "ownload"
+  | summarize Timestamp = max(Timestamp), ReportId = any(ReportId),
+              Downloads = count(), Objects = dcount(ObjectId), Apps = make_set(Application, 5)
+      by AccountObjectId, bin(Timestamp, 1h)
+  | where Downloads > hourly_downloads or Objects > 200
+  | project Timestamp, ReportId, AccountObjectId, Downloads, Objects, Apps

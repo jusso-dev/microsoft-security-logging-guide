@@ -1,0 +1,33 @@
+id: f786d6cf-5fbf-5406-9c15-1dfb59971085
+name: 'Sentinel Health - Data connector fetch failure'
+description: |
+  Detects supported Microsoft Sentinel data connectors reporting a Data fetch status change failure in SentinelHealth. Source guide: docs/sentinel-health.md.
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftSentinelHealth
+    dataTypes:
+      - SentinelHealth
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.008
+query: |
+  // Operational alert: a supported data connector stopped fetching successfully
+  SentinelHealth
+  | where TimeGenerated > ago(1h)
+  | where OperationName == 'Data fetch status change'
+  | where Status == 'Failure'
+  | project TimeGenerated, Connector = SentinelResourceName, ResourceId = SentinelResourceId,
+            Status, Reason, ExtendedProperties
+entityMappings:
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: ResourceId
+version: 1.0.0
+kind: Scheduled

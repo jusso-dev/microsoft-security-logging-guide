@@ -1,0 +1,45 @@
+id: 3815c66c-5347-54e8-9f44-bb47cffa6a2d
+name: 'Defender for Cloud - High-severity Defender for Cloud alert on a resource with active unhealthy recommendations'
+description: |
+  Correlating active workload alerts with open high-severity recommendations surfaces compromised resources that also have known exposure paths. MITRE: Initial Access and Privilege Escalation (tactics inherit from the underlying alert). Source guide: azure/defender-for-cloud/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureSecurityCenter
+    dataTypes:
+      - SecurityRecommendation
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - SecurityAlert
+queryFrequency: 1d
+queryPeriod: 3d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - PrivilegeEscalation
+query: |
+  // CUSTOM - High-severity Defender for Cloud alert on an asset with High unhealthy recommendations
+  // ASSUMPTION: Continuous export for Security recommendations is active and AssessedResourceId
+  // matches CompromisedEntity or ResourceId formats in your tenant. Inspect one sample join first.
+  let unhealthy = SecurityRecommendation
+      | where TimeGenerated > ago(2d)
+      | summarize arg_max(TimeGenerated, RecommendationState, RecommendationSeverity, RecommendationDisplayName)
+          by AssessedResourceId, RecommendationId
+      | where RecommendationState =~ "Unhealthy" and RecommendationSeverity =~ "High"
+      | summarize OpenHighRecs = count(), SampleRecs = make_set(RecommendationDisplayName, 5)
+          by ResourceKey = tolower(AssessedResourceId);
+  SecurityAlert
+  | where TimeGenerated > ago(1h)
+  | where AlertSeverity =~ "High"
+  | where ProductName has_any ("Defender for Cloud", "Azure Security Center")
+  | extend ResourceKey = tolower(ResourceId)
+  | join kind=inner unhealthy on ResourceKey
+  | project TimeGenerated, AlertName, AlertSeverity, CompromisedEntity, ResourceId, OpenHighRecs, SampleRecs
+entityMappings:
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: ResourceId
+version: 1.0.0
+kind: Scheduled

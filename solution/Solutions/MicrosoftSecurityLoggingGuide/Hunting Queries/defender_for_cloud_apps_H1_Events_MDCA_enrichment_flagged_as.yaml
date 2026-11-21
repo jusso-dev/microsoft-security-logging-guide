@@ -1,0 +1,25 @@
+id: 9e18ef69-4a7b-5c53-abe4-5b3440076c34
+name: 'Defender for Cloud Apps - Events MDCA enrichment flagged as uncommon for the user'
+description: |
+  | Uncommon events hunting query | Custom, from the table schema | See below | Source guide: cloud-apps/defender-for-cloud-apps/README.md.
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - CloudAppEvents
+tactics:
+  - Discovery
+query: |
+  // HUNT - Events MDCA enrichment flagged as uncommon for the user
+  // ASSUMPTION: per the schema doc, low-value events have an empty value and clean
+  // high-value events have an empty list, so this filter keeps only genuine anomalies.
+  CloudAppEvents
+  | where TimeGenerated > ago(1d)
+  | where isnotempty(UncommonForUser) and tostring(UncommonForUser) != "[]"
+  | project TimeGenerated, AccountDisplayName, Application, ActionType, ObjectName, UncommonForUser
+  | take 100
+entityMappings:
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: Application
+version: 1.0.0

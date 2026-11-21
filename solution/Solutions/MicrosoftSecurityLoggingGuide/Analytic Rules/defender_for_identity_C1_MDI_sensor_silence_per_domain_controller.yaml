@@ -1,0 +1,32 @@
+id: 10fa7f8d-eb50-5dec-a1b1-36faaebf1748
+name: 'Defender for Identity - MDI sensor silence per domain controller'
+description: |
+  MDI raises its own "Sensor stopped communicating" health alert after five minutes (health alerts). This rule gives the SOC the same signal in Sentinel, where it can drive an incident and an automation rule. Investigate before you respond: a quiet hour on a small site's DC can be normal, and the pattern in IdentityLogonEvents should agree. Source guide: identity/defender-for-identity/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftThreatProtection
+    dataTypes:
+      - IdentityDirectoryEvents
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Discovery
+query: |
+  // CUSTOM - a domain controller that normally reports has gone quiet in the identity stream
+  // ASSUMPTION: every healthy DC emits IdentityDirectoryEvents regularly. Measure your baseline first.
+  IdentityDirectoryEvents
+  | where TimeGenerated > ago(24h)
+  | summarize Rows = count(), Latest = max(TimeGenerated) by DestinationDeviceName
+  | where Latest < ago(2h)
+  | project DestinationDeviceName, Rows, Latest,
+            HoursQuiet = round((now() - Latest) / 1h, 1)
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: DestinationDeviceName
+version: 1.0.0
+kind: Scheduled

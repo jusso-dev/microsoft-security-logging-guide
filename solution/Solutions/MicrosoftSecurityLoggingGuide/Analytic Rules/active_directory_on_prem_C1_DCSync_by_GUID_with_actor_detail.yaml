@@ -1,0 +1,47 @@
+id: 4be74f59-18e9-5871-a3af-fa674d2e15b8
+name: 'Active Directory Domain Services (on-premises) - DCSync by GUID, with actor detail'
+description: |
+  The OOB replication rule is the primary detector. This one adds the replication GUID filter and the target object, so it survives actor-based tuning and gives responders the "what was replicated" question an answer. MITRE: Credential Access T1003.006. Pair with MDI's DCSync alert (external ID 2006) rather than replacing it. Source guide: identity/active-directory-on-prem/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1003.006
+query: |
+  // CUSTOM - directory replication from a non domain controller account, filtered to the replication rights GUIDs
+  SecurityEvent
+  | where TimeGenerated > ago(1h)
+  | where EventID == 4662
+  | where ObjectServer =~ "DS"
+  // ASSUMPTION: the replication access rights are listed in the Properties field of 4662 events.
+  // The GUIDs below are the DS-Replication-Get-Changes rights. Confirm they appear in your events with:
+  //   SecurityEvent | where EventID == 4662 | take 5 | project Properties
+  | where Properties has_any ("1131f6aa-9c07-11d1-f79f-00c04fc2dcd2",
+                              "1131f6ad-9c07-11d1-f79f-00c04fc2dcd2")
+  // Domain controllers authenticate as computer accounts ending in $. Exclude them.
+  | where SubjectUserName !endswith "$" and AccountType != "Machine"
+  | project TimeGenerated, Computer, SubjectUserName, SubjectDomainName, ObjectName, IpAddress, Process
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: SubjectUserName
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IpAddress
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,44 @@
+id: 6e92a399-50b4-5ec2-8220-fc75575717c5
+name: 'Teams - External access or guest policy changed'
+description: |
+  TeamsTenantSettingChanged records org-wide changes by a global admin, and TeamsAdminAction records admin tool changes through PowerShell, the admin centre or the API (Teams activities in the audit log). An attacker who flips guest or federation settings gets a durable door. MITRE: Defense Evasion T1562, Persistence T1098. Source guide: email-collab/teams/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - DefenseEvasion
+relevantTechniques:
+  - T1098
+  - T1562
+query: |
+  // CUSTOM - Teams tenant or admin settings that change who can get in
+  // ASSUMPTION: The setting name is in the Item column for TeamsTenantSettingChanged.
+  // Pin the values your tenant emits before narrowing the filter:
+  //   OfficeActivity | where Operation in ("TeamsTenantSettingChanged", "TeamsAdminAction")
+  //   | distinct Operation, Item, Parameters
+  OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where OfficeWorkload =~ "MicrosoftTeams"
+  | where Operation in ("TeamsTenantSettingChanged", "TeamsAdminAction")
+  | where tostring(Item) has_any ("guest", "external", "federation", "sharing", "access")
+      or tostring(Parameters) has_any ("Guest", "Federation", "AllowGuest")
+  | project TimeGenerated, Operation, UserId, Item, Parameters, ClientIP
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

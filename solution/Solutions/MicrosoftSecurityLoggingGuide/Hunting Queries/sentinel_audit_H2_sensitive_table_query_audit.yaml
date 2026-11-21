@@ -1,0 +1,26 @@
+id: 01b78f8f-43d6-5138-ad64-f1f8be98bf94
+name: 'Sentinel Audit - Users querying sensitive security tables'
+description: |
+  Hunts LAQueryLogs for users querying high-sensitivity security tables such as SigninLogs, SecurityEvent and SentinelAudit. Source guide: docs/sentinel-health.md.
+requiredDataConnectors:
+  - connectorId: AzureMonitor
+    dataTypes:
+      - LAQueryLogs
+tactics:
+  - Discovery
+  - Collection
+relevantTechniques:
+  - T1087
+query: |
+  // Who queried the most sensitive tables this week
+  LAQueryLogs
+  | where TimeGenerated > ago(7d)
+  | where QueryText has_any ('SigninLogs', 'SecurityEvent', 'SentinelAudit')
+  | summarize Queries = count(), LastRun = max(TimeGenerated) by AADEmail, RequestClientApp
+  | order by Queries desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: AADEmail
+version: 1.0.0

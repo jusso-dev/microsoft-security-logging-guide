@@ -1,0 +1,36 @@
+id: f4dd59d1-71f5-5529-badb-22a9a5c2f557
+name: 'Azure App Service and Azure Functions - FTP or SCM basic-auth publishing login on an App Service or Function App'
+description: |
+  In environments that deploy via Entra ID and CI/CD pipelines, any row in AppServiceAuditLogs indicates legacy basic authentication or leaked publish credentials in use. MITRE: Initial Access and Persistence, Valid Accounts T1078, Server Software Component T1505.003. Source guide: azure/app-service-functions/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureAppService
+    dataTypes:
+      - AppServiceAuditLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - Persistence
+relevantTechniques:
+  - T1078
+  - T1505.003
+query: |
+  // CUSTOM - Publishing credential (FTP or SCM/Kudu basic auth) login detected
+  // ASSUMPTION: AppServiceAuditLogs diagnostic setting is enabled on target Web Apps and Function Apps.
+  // Add known legacy deployment runner IPs to approved_ips while migrating them to Entra ID.
+  let approved_ips = dynamic([]);
+  AppServiceAuditLogs
+  | where TimeGenerated > ago(1h)
+  | where UserAddress !in (approved_ips)
+  | project TimeGenerated, App = _ResourceId, OperationName, Protocol, User, UserAddress
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: User
+version: 1.0.0
+kind: Scheduled

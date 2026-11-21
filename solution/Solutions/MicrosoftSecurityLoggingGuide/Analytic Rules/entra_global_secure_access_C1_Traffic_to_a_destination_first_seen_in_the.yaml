@@ -1,0 +1,45 @@
+id: c9068c66-90b4-5f11-b884-dff21ebec8d1
+name: 'Entra Internet Access and Private Access (Global Secure Access) - Traffic to a destination first seen in the tenant'
+description: |
+  Add a web category or web-reputation filter once you have run validation query 4 and know what DestinationWebCategories looks like in your tenant. MITRE: Command and Control T1071, T1090. Source guide: identity/entra-global-secure-access/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: GlobalSecureAccess
+    dataTypes:
+      - NetworkAccessTraffic
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CommandAndControl
+relevantTechniques:
+  - T1071
+  - T1090
+query: |
+  // CUSTOM - First-seen destination FQDN in the tenant, 14 day baseline
+  // Catches freshly spun-up C2 or exfil infrastructure the TI rules have never seen.
+  // ASSUMPTION: DestinationFqdn is populated for internet traffic. Raw IP destinations return
+  // an empty FQDN, so pair this with a first-seen DestinationIp rule if you care about IP-only traffic.
+  let lookback = 14d;
+  let known =
+      NetworkAccessTraffic
+      | where TimeGenerated between (ago(lookback) .. ago(1h))
+      | where isnotempty(DestinationFqdn)
+      | summarize by DestinationFqdn;
+  NetworkAccessTraffic
+  | where TimeGenerated > ago(1h)
+  | where isnotempty(DestinationFqdn)
+  | where DestinationFqdn !in (known)
+  | summarize FirstSeen = min(TimeGenerated), Users = dcount(UserPrincipalName),
+              Samples = make_set(strcat(SourceIp, ' ', Action), 5)
+      by DestinationFqdn
+  | project DestinationFqdn, FirstSeen, Users, Samples
+entityMappings:
+  - entityType: DNS
+    fieldMappings:
+      - identifier: DomainName
+        columnName: DestinationFqdn
+version: 1.0.0
+kind: Scheduled

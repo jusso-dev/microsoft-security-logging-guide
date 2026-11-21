@@ -1,0 +1,35 @@
+id: 3b019f32-0595-5e11-b8ff-eb908d9e24d3
+name: 'Linux (Syslog, CEF and auditd) - Local user creation or privileged group modification'
+description: |
+  MITRE: Persistence T1136.001 (Create Account: Local Account) and T1098 (Account Manipulation). Source guide: servers/linux-syslog/README.md (C3).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: SyslogAma
+    dataTypes:
+      - Syslog
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+relevantTechniques:
+  - T1098
+  - T1136.001
+query: |
+  // CUSTOM - Local account creation or addition to sudo/wheel/root groups via useradd/usermod/adduser
+  // ASSUMPTION: Shadow utilities log to auth or authpriv on your Linux distributions.
+  Syslog
+  | where TimeGenerated > ago(1h)
+  | where Facility in ("auth", "authpriv")
+  | where ProcessName in ("useradd", "usermod", "adduser", "gpasswd", "groupadd")
+  | where SyslogMessage has_any ("new user", "add ", "added ", "sudo", "wheel", "root")
+  | project TimeGenerated, Computer, ProcessName, SyslogMessage
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: Computer
+version: 1.0.0
+kind: Scheduled

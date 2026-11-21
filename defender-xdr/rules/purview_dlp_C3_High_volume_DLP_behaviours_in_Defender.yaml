@@ -1,0 +1,37 @@
+id: 25a5d4f1-faeb-5c51-b69b-173ab5245f1e
+displayName: 'Purview Data Loss Prevention - High-volume DLP behaviours in Defender XDR'
+description: |
+  Use this as a Defender XDR custom detection when the built-in Set-As-Behavior tuning rule is left enabled, so genuine bursts of DLP violations still raise an incident without flooding the queue on single accidental matches. MITRE: Exfiltration T1048. Source guide: data-security/purview-dlp/README.md (C3).
+severity: Medium
+frequency: PT1H
+lookbackPeriod: PT1H
+sourceGuide: 'data-security/purview-dlp/README.md'
+requiredTables:
+  - BehaviorInfo
+  - BehaviorEntities
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1048
+entityMappings:
+  - entityType: User
+    identifier: AccountUpn
+    columnName: AccountUpn
+recommendedActions: |
+  Review the aggregated DLP behaviours for the account in the Defender portal and escalate to Purview DLP or Insider Risk if intentional exfiltration is confirmed.
+query: |
+  // Defender XDR custom detection: repeated DLP behaviours for one account in 1 hour
+  // ASSUMPTION: confirm ServiceSource == "Data Loss Prevention" in BehaviorInfo in your tenant.
+  BehaviorInfo
+  | where Timestamp > ago(1h)
+  | where ServiceSource == "Data Loss Prevention"
+  | join kind=inner (
+      BehaviorEntities
+      | where Timestamp > ago(1h)
+      | where isnotempty(AccountUpn)
+  ) on BehaviorId
+  | summarize BehaviorCount = dcount(BehaviorId), Titles = make_set(Title, 10),
+              Timestamp = max(Timestamp), ReportId = any(BehaviorId)
+      by AccountUpn
+  | where BehaviorCount >= 5
+  | project Timestamp, ReportId, AccountUpn, BehaviorCount, Titles

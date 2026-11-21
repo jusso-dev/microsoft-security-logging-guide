@@ -1,0 +1,45 @@
+id: 019c4a47-efe1-52d8-9436-5f8b1b90d53f
+name: '365 Copilot - Jailbreak or prompt injection flag detected in Copilot interactions'
+description: |
+  Microsoft 365 Copilot records safety flags including JailbreakDetected inside message metadata. Alerting on repeated or targeted jailbreak detections catches adversarial prompting early. If you hunt in Defender XDR instead of Sentinel, run the equivalent check against CloudAppEvents where ActionType == "CopilotInteraction" and expand RawEventData.CopilotEventData.Messages. MITRE ATLAS: AML.T0051 (LLM Prompt Injection). Source guide: ai/microsoft-365-copilot/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftCopilot
+    dataTypes:
+      - CopilotActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Discovery
+relevantTechniques:
+  - T0051
+query: |
+  // CUSTOM - Jailbreak flag set in CopilotActivity interaction events
+  // ASSUMPTION: LLMEventData contains a Messages array with a boolean JailbreakDetected field,
+  // matching the Purview CopilotInteraction schema. Inspect a sample row in your tenant first.
+  CopilotActivity
+  | where TimeGenerated > ago(1h)
+  | where RecordType == "CopilotInteraction"
+  | extend Messages = LLMEventData.Messages
+  | mv-expand Message = Messages
+  | where tobool(Message.JailbreakDetected) == true
+  | summarize JailbreakCount = count(),
+              AppHosts = make_set(AppHost, 10),
+              Agents = make_set(AgentName, 10),
+              SrcIPs = make_set(SrcIpAddr, 10)
+              by ActorName, ActorUserId, bin(TimeGenerated, 1h)
+  | project TimeGenerated, ActorName, ActorUserId, JailbreakCount, AppHosts, Agents, SrcIPs
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: AadUserId
+        columnName: ActorUserId
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+version: 1.0.0
+kind: Scheduled

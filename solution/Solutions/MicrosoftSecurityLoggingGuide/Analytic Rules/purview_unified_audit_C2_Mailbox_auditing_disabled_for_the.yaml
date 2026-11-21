@@ -1,0 +1,47 @@
+id: db56a5dc-457a-5ce4-bdcc-1c9dffed7b2f
+name: 'Purview unified audit log - Mailbox auditing disabled for the organisation'
+description: |
+  Set-OrganizationConfig -AuditDisabled $true turns off mailbox auditing for every mailbox, and Set-MailboxAuditBypassAssociation -AuditByPassEnabled $true hides one user's mailbox actions everywhere (manage mailbox auditing). Either one blinds you to mailbox attacks. MITRE: Defense Evasion T1562. Source guide: email-collab/purview-unified-audit/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562
+query: |
+  // CUSTOM - Org-wide mailbox auditing turned off, or audit bypass enabled for a user.
+  // Both are Exchange cmdlets, so admin audit logging records them by default.
+  // ASSUMPTION: audit-mailboxes documents both cmdlets; confirm the exact Operation
+  // and parameter spelling in your own OfficeActivity with validation query 3.
+  let admin_noise = dynamic(["NT AUTHORITY", "NT SERVICE", "devilfish-applicationaccount"]);
+  union
+  (OfficeActivity
+   | where TimeGenerated > ago(24h)
+   | where Operation =~ "Set-OrganizationConfig"
+   | where Parameters has_any ("AuditDisabled")
+   | project TimeGenerated, Actor = UserId, ClientIP, Operation, Parameters),
+  (OfficeActivity
+   | where TimeGenerated > ago(24h)
+   | where Operation =~ "Set-MailboxAuditBypassAssociation"
+   | where Parameters has_any ("AuditByPassEnabled")
+   | where UserId !has_any (admin_noise)
+   | project TimeGenerated, Actor = UserId, ClientIP, Operation, Parameters)
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

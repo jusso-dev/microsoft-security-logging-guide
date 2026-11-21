@@ -1,0 +1,51 @@
+id: 1b6922f5-acf6-5b1f-be61-51ca5002f4b4
+name: '365 Copilot - Unusual burst of Copilot prompts referencing sensitive files'
+description: |
+  A compromised account or departing insider can use Copilot to summarise dozens of confidential files rapidly without triggering bulk SharePoint download thresholds. Tune resource_threshold against a 14-day baseline in your tenant, or filter specifically on your Confidential and Highly Confidential SensitivityLabelId GUIDs. MITRE ATT&CK: Collection T1213 (Data from Information Repositories). Source guide: ai/microsoft-365-copilot/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: MicrosoftCopilot
+    dataTypes:
+      - CopilotActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+relevantTechniques:
+  - T1213
+query: |
+  // CUSTOM - Single user accessing many distinct resources via Copilot in one hour
+  // ASSUMPTION: LLMEventData.AccessedResources holds the array of grounded files with Id/Name
+  // and SensitivityLabelId properties, matching the Purview CopilotInteraction schema.
+  // Confirm exact key names on one sample row in your workspace before enabling.
+  let resource_threshold = 20;
+  CopilotActivity
+  | where TimeGenerated > ago(1h)
+  | where RecordType == "CopilotInteraction"
+  | extend Resources = LLMEventData.AccessedResources
+  | mv-expand Resource = Resources
+  | extend ResourceId = tostring(Resource.Id),
+           SensitivityLabelId = tostring(Resource.SensitivityLabelId)
+  | where isnotempty(ResourceId)
+  | summarize DistinctResources = dcount(ResourceId),
+              LabelledResources = dcountif(ResourceId, isnotempty(SensitivityLabelId)),
+              SampleResources = make_set(ResourceId, 10),
+              AppHosts = make_set(AppHost, 5),
+              SrcIPs = make_set(SrcIpAddr, 5)
+              by ActorName, ActorUserId, bin(TimeGenerated, 1h)
+  | where DistinctResources >= resource_threshold
+  | project TimeGenerated, ActorName, ActorUserId, DistinctResources, LabelledResources, AppHosts, SrcIPs, SampleResources
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: AadUserId
+        columnName: ActorUserId
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: ActorName
+version: 1.0.0
+kind: Scheduled

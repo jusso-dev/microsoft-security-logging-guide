@@ -1,0 +1,5 @@
+DataSecurityEvents
+| where Timestamp > ago(7d)
+| where isnotempty(DlpPolicyMatchInfo)
+| summarize Events = count() by DeviceName, DlpPolicyEnforcementMode, DlpPolicyMatchInfo
+| order by Events desc

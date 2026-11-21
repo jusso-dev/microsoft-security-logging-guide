@@ -1,0 +1,27 @@
+id: 5d7247ca-e5d6-5da3-90ab-6071af58595b
+name: 'GitHub (Enterprise Cloud) - First-time actors creating SSH keys or deploy keys in the last 24h'
+description: |
+  - **GitHub Actions OIDC / federated credential abuse.** Correlate GitHub workflow runs and environment edits with AADServicePrincipalSignInLogs in Entra ID to spot unauthorised cloud deployments from rogue branches. Source guide: devops/github/README.md.
+requiredDataConnectors:
+  - connectorId: GitHubEnterpriseAuditLog
+    dataTypes:
+      - GitHubAuditData
+tactics:
+  - PrivilegeEscalation
+query: |
+  // Hunt: First-time actors creating SSH keys or deploy keys in the last 24h
+  let historical_actors = GitHubAuditData
+      | where TimeGenerated between (ago(30d) .. ago(1d))
+      | where Action in~ ("public_key.create", "repo.add_deploy_key")
+      | distinct Actor;
+  GitHubAuditData
+  | where TimeGenerated > ago(1d)
+  | where Action in~ ("public_key.create", "repo.add_deploy_key")
+  | where Actor !in (historical_actors)
+  | project TimeGenerated, Actor, ActorIp, Country, Org, Repo, Action
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0

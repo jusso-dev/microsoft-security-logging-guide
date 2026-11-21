@@ -1,0 +1,61 @@
+id: 46a35567-d59f-5b02-a79a-19ff2781060c
+name: 'Teams - External member added then file download or upload'
+description: |
+  The out-of-box rule covers the chat-file share path; this catches guests who download from team document libraries. Correlate on the guest UPN, which carries #EXT#. MITRE: Exfiltration T1567, Collection T1213. Source guide: email-collab/teams/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 6h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+  - Exfiltration
+relevantTechniques:
+  - T1213
+  - T1567
+query: |
+  // CUSTOM - Guest joined a team and then moved files within the window
+  let window = 2h;
+  let guests = OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where OfficeWorkload =~ "MicrosoftTeams"
+  | where Operation =~ "MemberAdded"
+  | mv-expand Members
+  | extend MemberUpn = tostring(Members.UPN)
+  | where MemberUpn has "#EXT#"
+  | project AddTime = TimeGenerated, MemberUpn, AddedBy = UserId, TeamName;
+  guests
+  | join kind=inner (
+      OfficeActivity
+      | where TimeGenerated > ago(3h)
+      | where OfficeWorkload in ("SharePoint", "OneDrive")
+      | where Operation in ("FileDownloaded", "FileSyncDownloadedFull", "FileUploaded")
+      | where SourceRelativeUrl has "Microsoft Teams" or SourceRelativeUrl has "Teams"
+      | project FileTime = TimeGenerated, MemberUpn = UserId, Operation, SourceFileName, Site_Url
+  ) on MemberUpn
+  | where FileTime between (AddTime .. AddTime + window)
+  | project AddTime, MemberUpn, AddedBy, TeamName, FileTime, Operation, SourceFileName, Site_Url
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: MemberUpn
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: AddedBy
+  - entityType: URL
+    fieldMappings:
+      - identifier: Url
+        columnName: Site_Url
+  - entityType: File
+    fieldMappings:
+      - identifier: Name
+        columnName: SourceFileName
+version: 1.0.0
+kind: Scheduled

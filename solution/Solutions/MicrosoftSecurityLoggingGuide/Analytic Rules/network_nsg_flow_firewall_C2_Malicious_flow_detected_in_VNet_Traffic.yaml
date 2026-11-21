@@ -1,0 +1,42 @@
+id: 6a1c3a5c-50ad-5155-a0a4-2dd62d489ae5
+name: 'Azure networking (VNet flow logs, Azure Firewall, WAF, DNS and DDoS) - Malicious flow detected in VNet Traffic Analytics'
+description: |
+  If NTANetAnalytics is in the Data lake tier, run this as a scheduled summary or hunting job; if in Analytics, run hourly. It flags flows Traffic Analytics tags as MaliciousFlow. MITRE: Command and Control T1071, Exfiltration. Source guide: azure/network-nsg-flow-firewall/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureNetworkWatcher
+    dataTypes:
+      - NTANetAnalytics
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CommandAndControl
+  - Exfiltration
+relevantTechniques:
+  - T1071
+query: |
+  // CUSTOM - Malicious flows tagged by Network Watcher Traffic Analytics in VNet flow logs
+  // ASSUMPTION: NTANetAnalytics is queryable in your workspace (or run as a Data lake scheduled job).
+  // SrcIp or DestIp can be blank on ExternalPublic/AzurePublic rows; check PublicIPs column when investigating.
+  NTANetAnalytics
+  | where TimeGenerated > ago(1h)
+  | where FlowType == "MaliciousFlow"
+  | summarize Flows = count(), AllowedFlows = countif(FlowStatus == "A"),
+              DeniedFlows = countif(FlowStatus == "D"),
+              DestPorts = make_set(DestPort, 10)
+      by SrcIp, DestIp, FlowDirection, SubType
+  | order by AllowedFlows desc, Flows desc
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SrcIp
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: DestIp
+version: 1.0.0
+kind: Scheduled

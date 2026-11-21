@@ -130,7 +130,9 @@ nav:
           - multi-cloud/index.md
           - Amazon Web Services (optional): multi-cloud/aws/index.md
           - Google Cloud (optional): multi-cloud/google-cloud/index.md
-  - KQL query packs:
+  - KQL & Sentinel solution:
+      - Sentinel Content Hub solution: solution/index.md
+      - Defender XDR custom detections: defender-xdr/index.md
       - Validation query pack: queries/validation/index.md
       - Cost estimation query pack: queries/cost/index.md
   - Project:

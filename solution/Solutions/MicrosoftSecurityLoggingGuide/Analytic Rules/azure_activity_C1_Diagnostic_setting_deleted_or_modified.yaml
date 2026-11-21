@@ -1,0 +1,48 @@
+id: 86a91064-40a9-5e39-b3df-04a9cd8c1bd4
+name: 'Azure Activity (control plane) - Diagnostic setting deleted or modified'
+description: |
+  Attackers often disable or tamper with subscription and resource diagnostic settings to blind the SOC before privilege escalation or data theft. Tune approved_automation against your IaC deployment service principals (via a Sentinel watchlist). MITRE: Defense Evasion, Impair Defenses T1562.008. Source guide: azure/azure-activity/README.md (C1).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - PrivilegeEscalation
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.008
+query: |
+  // CUSTOM - Subscription or resource diagnostic setting deleted or modified
+  // ASSUMPTION: OperationNameValue uses uppercase ARM action strings in your tenant.
+  // Verify with: AzureActivity | where OperationNameValue has "DIAGNOSTICSETTINGS" | distinct OperationNameValue
+  let approved_automation = dynamic(["terraform-spn-object-id"]);
+  AzureActivity
+  | where TimeGenerated > ago(1h)
+  | where OperationNameValue in~ (
+      "MICROSOFT.INSIGHTS/DIAGNOSTICSETTINGS/DELETE",
+      "MICROSOFT.INSIGHTS/DIAGNOSTICSETTINGS/WRITE"
+  )
+  | where ActivityStatusValue in~ ("Success", "Succeeded")
+  | where Caller !in~ (approved_automation)
+  | project TimeGenerated, SubscriptionId, ResourceGroup, OperationNameValue, Caller, CallerIpAddress, ResourceId
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Caller
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: ResourceId
+version: 1.0.0
+kind: Scheduled

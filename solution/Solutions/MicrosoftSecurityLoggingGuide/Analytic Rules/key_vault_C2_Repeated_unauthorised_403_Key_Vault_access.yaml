@@ -1,0 +1,43 @@
+id: ecddcd71-c4c1-5877-be01-fa5b7a07473b
+name: 'Azure Key Vault - Repeated unauthorised (403) Key Vault access attempts'
+description: |
+  A spike in 403 Forbidden responses against a vault often means a compromised identity is probing vaults to see which secrets it can read, or an attacker's IP hit a Key Vault firewall rule. MITRE: Discovery and Credential Access, Cloud Infrastructure Discovery T1580. Source guide: azure/key-vault/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureKeyVault
+    dataTypes:
+      - AZKVAuditLogs
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+  - Discovery
+relevantTechniques:
+  - T1580
+query: |
+  // CUSTOM - Burst of Forbidden (403) Key Vault data plane requests
+  // ASSUMPTION: HttpStatusCode is numeric 403 and ResultSignature contains Forbidden in AZKVAuditLogs.
+  // Confirm both fields with a sample 403 row in your workspace.
+  AZKVAuditLogs
+  | where TimeGenerated > ago(1h)
+  | where HttpStatusCode == 403 or ResultSignature has "Forbidden"
+  | summarize DeniedCount = count(),
+              Operations = make_set(OperationName, 10),
+              Vaults = make_set(_ResourceId, 10)
+              by CallerIpAddress, Identity = tostring(Identity)
+  | where DeniedCount >= 10
+  | order by DeniedCount desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Identity
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+version: 1.0.0
+kind: Scheduled

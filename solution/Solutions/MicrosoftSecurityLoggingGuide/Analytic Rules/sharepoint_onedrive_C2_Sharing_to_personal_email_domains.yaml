@@ -1,0 +1,44 @@
+id: 3365c6fc-0fdd-5d3d-b4c7-bf8aa57a512c
+name: 'SharePoint Online and OneDrive - Sharing to personal email domains'
+description: |
+  Defender for Cloud Apps has a file policy template for this, but MDCA file policies retire on 6 January 2027, so a Sentinel rule is the durable replacement. Tune the domain list to your acceptable-use policy. MITRE: Exfiltration T1567.002. Source guide: email-collab/sharepoint-onedrive/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1567.002
+query: |
+  // CUSTOM - File or folder shared to a consumer mail domain
+  let personal_domains = dynamic(["gmail.com", "outlook.com", "hotmail.com", "yahoo.com",
+                                  "icloud.com", "proton.me", "bigpond.com"]);
+  OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where Operation in ("SharingSet", "SharingInvitationCreated")
+  | extend TargetDomain = tolower(tostring(split(TargetUserOrGroupName, "@")[1]))
+  | where TargetDomain in (personal_domains)
+  | project TimeGenerated, Operation, UserId, TargetUserOrGroupName, SharingType,
+            SourceFileName, Site_Url
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: URL
+    fieldMappings:
+      - identifier: Url
+        columnName: Site_Url
+  - entityType: File
+    fieldMappings:
+      - identifier: Name
+        columnName: SourceFileName
+version: 1.0.0
+kind: Scheduled

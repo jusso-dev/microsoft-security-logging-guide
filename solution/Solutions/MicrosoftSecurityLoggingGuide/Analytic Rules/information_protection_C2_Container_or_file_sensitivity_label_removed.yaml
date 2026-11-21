@@ -1,0 +1,47 @@
+id: 7da97893-64c0-5222-90e5-eaf2b5ab84ee
+name: 'Purview Information Protection - Container or file sensitivity label removed in Microsoft 365'
+description: |
+  Uses the free OfficeActivity table to detect removal of sensitivity labels on files, SharePoint sites, Teams or Loop workspaces, including decryption via PowerShell (Unlock-SPOSensitivityLabelEncryptedFile). Run hourly in Sentinel with a 1-hour lookback. MITRE: Defense Evasion T1562 and Exfiltration T1530. Source guide: data-security/information-protection/README.md (C2).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+  - Exfiltration
+  - Collection
+relevantTechniques:
+  - T1530
+  - T1562
+query: |
+  // CUSTOM - Sensitivity label removal or decryption cmdlet in OfficeActivity
+  // ASSUMPTION: Confirm Operation names in your tenant with:
+  //   OfficeActivity | where TimeGenerated > ago(30d) | where Operation has "SensitivityLabel" | distinct Operation
+  OfficeActivity
+  | where TimeGenerated > ago(1h)
+  | where Operation in (
+      "SensitivityLabelRemoved",
+      "SiteSensitivityLabelChanged",
+      "Unlock-SPOSensitivityLabelEncryptedFile"
+  )
+  | summarize Events = count(), Targets = make_set(ObjectId, 10), Workloads = make_set(OfficeWorkload, 5)
+      by UserId, Operation, ClientIP
+  | where Operation == "Unlock-SPOSensitivityLabelEncryptedFile" or Events >= 5
+  | order by Events desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

@@ -1,0 +1,35 @@
+id: 942af6ee-8b5e-58ff-8c2b-dc25f2d3ec29
+name: 'Power Platform (Power Apps, Power Automate, Power Platform admin) - Tenant admin self-elevation in an environment'
+description: |
+  ApplyAdminRole is the documented event when a tenant admin grants themself System Administrator inside an environment. Pair this with the Dataverse System Administrator role assignment rule in Microsoft Dataverse and Dynamics 365. MITRE: Privilege Escalation T1098. Source guide: business-apps/power-platform/README.md (C7).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: PowerPlatformAdmin
+    dataTypes:
+      - PowerPlatformAdminActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - PrivilegeEscalation
+  - Collection
+  - Persistence
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - Power Platform or Dynamics 365 tenant admin assigns themself System Administrator in an environment
+  PowerPlatformAdminActivity
+  | where TimeGenerated > ago(1h)
+  | where EventOriginalType == "ApplyAdminRole"
+  | extend Properties = tostring(PropertyCollection)
+  | extend EnvironmentId = extract(@'"powerplatform.analytics.resource.environment.id","Value":"([^"]+)"', 1, Properties)
+  | project TimeGenerated, Actor = ActorName, Action = "Tenant admin applied System Administrator to self", EnvironmentId
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

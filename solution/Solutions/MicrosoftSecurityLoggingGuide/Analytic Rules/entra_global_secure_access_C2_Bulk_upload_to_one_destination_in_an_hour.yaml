@@ -1,0 +1,41 @@
+id: f979d16a-c782-50b8-8b69-0a2b0a58ce9f
+name: 'Entra Internet Access and Private Access (Global Secure Access) - Bulk upload to one destination in an hour'
+description: |
+  MITRE: Exfiltration T1567. Source guide: identity/entra-global-secure-access/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: GlobalSecureAccess
+    dataTypes:
+      - NetworkAccessTraffic
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Exfiltration
+relevantTechniques:
+  - T1567
+query: |
+  // CUSTOM - Large outbound volume from one user to one destination in an hour
+  // Exfiltration over the SWG path that policy allowed. MDCA only sees SaaS app activity,
+  // so this catches uploads to destinations no app connector covers.
+  // ASSUMPTION: The threshold. Start high, then tune against validation query 5 volume data.
+  let threshold_bytes = 2 * 1024 * 1024 * 1024; // 2 GB
+  NetworkAccessTraffic
+  | where TimeGenerated > ago(1h)
+  | where isnotempty(DestinationFqdn)
+  | summarize SentBytes = sum(SentBytes), Transactions = count() by UserPrincipalName, DestinationFqdn, bin(TimeGenerated, 1h)
+  | where SentBytes > threshold_bytes
+  | project TimeGenerated, UserPrincipalName, DestinationFqdn, SentBytes, Transactions
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserPrincipalName
+  - entityType: DNS
+    fieldMappings:
+      - identifier: DomainName
+        columnName: DestinationFqdn
+version: 1.0.0
+kind: Scheduled

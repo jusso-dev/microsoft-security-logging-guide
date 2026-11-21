@@ -1,0 +1,57 @@
+id: a26d97a4-ffb2-54ab-845b-80792661e300
+name: 'Sentinel Health - Critical security log table stale or empty'
+description: |
+  Detects core security log tables that have gone silent beyond their expected freshness budget. Trim the expected datatable to match your active connectors before enabling. Source guide: docs/sentinel-health.md.
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+      - AuditLogs
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+  - connectorId: CefAma
+    dataTypes:
+      - CommonSecurityLog
+queryFrequency: 1h
+queryPeriod: 14d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562.008
+query: |
+  // Operational alert: critical tables are stale or empty
+  // ASSUMPTION: trim the table list and staleness budget to match your environment.
+  let expected = datatable(Table: string, MaxStaleMinutes: long)
+      ["SigninLogs", 120,
+       "AuditLogs", 120,
+       "AzureActivity", 120,
+       "OfficeActivity", 720,
+       "SecurityEvent", 120,
+       "CommonSecurityLog", 120];
+  let seen = union withsource=TableName isfuzzy=true
+          SigninLogs, AuditLogs, AzureActivity, OfficeActivity, SecurityEvent, CommonSecurityLog
+      | where TimeGenerated > ago(14d)
+      | summarize Latest = max(TimeGenerated) by TableName;
+  expected
+  | join kind=leftouter seen on $left.Table == $right.TableName
+  | extend StaleMinutes = round((now() - coalesce(Latest, ago(14d))) / 1m)
+  | where StaleMinutes > MaxStaleMinutes
+  | project Table, Latest, StaleMinutes, MaxStaleMinutes
+entityMappings:
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: Table
+version: 1.0.0
+kind: Scheduled

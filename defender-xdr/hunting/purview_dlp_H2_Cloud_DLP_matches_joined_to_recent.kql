@@ -1,0 +1,14 @@
+// ASSUMPTION: EntraIdSignInEvents requires Entra ID P2 in Defender XDR advanced hunting.
+let riskyUsers = EntraIdSignInEvents
+    | where Timestamp > ago(7d)
+    | where RiskLevelDuringSignIn in (50, 100)
+    | distinct AccountUpn = tolower(AccountUpn);
+CloudAppEvents
+| where Timestamp > ago(7d)
+| where ActionType == "DlpRuleMatch"
+| extend Parsed = parse_json(RawEventData)
+| extend UserUpn = tolower(tostring(Parsed.UserId))
+| where UserUpn in (riskyUsers)
+| project Timestamp, UserUpn, Application, PolicyName = tostring(Parsed.PolicyName),
+          RuleName = tostring(Parsed.RuleName), Action = tostring(Parsed.Action)
+| order by Timestamp desc

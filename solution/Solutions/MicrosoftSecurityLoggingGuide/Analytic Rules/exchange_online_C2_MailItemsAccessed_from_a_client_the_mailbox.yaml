@@ -1,0 +1,48 @@
+id: 67d62b4f-0734-5614-8fa4-a20d8e459732
+name: 'Exchange Online - MailItemsAccessed from a client the mailbox owner has never used'
+description: |
+  Tune floor_events to your tenant. Outlook sync generates many MailItemsAccessed events, so the 14 day baseline removes the everyday clients and leaves the new ones. MITRE: Collection T1114. Source guide: email-collab/exchange-online/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+relevantTechniques:
+  - T1114
+query: |
+  // CUSTOM - Mail access via a client protocol or IP unseen for that mailbox in 14 days.
+  // Attackers access mail through IMAP, EWS or ActiveSync rather than Outlook,
+  // so a new client on a busy mailbox is a strong compromise signal.
+  // ASSUMPTION: ClientInfoString and Client_IPAddress carry protocol and IP for
+  // MailItemsAccessed, matching the OOB MailItemsAccessedTimeSeries rule fields.
+  // ASSUMPTION: New joiners have no baseline, so the volume floor matters.
+  let lookback = 14d;
+  let floor_events = 10;
+  let baseline =
+    OfficeActivity
+    | where TimeGenerated between (ago(lookback) .. ago(1d))
+    | where Operation =~ "MailItemsAccessed"
+    | summarize by MailboxOwnerUPN, ClientInfoString;
+  OfficeActivity
+  | where TimeGenerated > ago(1d)
+  | where Operation =~ "MailItemsAccessed"
+  | summarize Events = count(), SampleIP = make_set(Client_IPAddress, 5),
+              FirstSeen = min(TimeGenerated), Latest = max(TimeGenerated)
+              by MailboxOwnerUPN, ClientInfoString
+  | where Events >= floor_events
+  | join kind=leftanti baseline on MailboxOwnerUPN, ClientInfoString
+  | project MailboxOwnerUPN, ClientInfoString, Events, SampleIP, FirstSeen, Latest
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: MailboxOwnerUPN
+version: 1.0.0
+kind: Scheduled

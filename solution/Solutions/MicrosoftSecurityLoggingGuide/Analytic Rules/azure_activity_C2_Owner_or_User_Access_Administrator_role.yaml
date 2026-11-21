@@ -1,0 +1,52 @@
+id: b9754bc6-92f4-5cfa-9adf-2220f18519ec
+name: 'Azure Activity (control plane) - Owner or User Access Administrator role assigned at subscription or management group scope'
+description: |
+  Granting high-privilege Azure RBAC roles at broad scope gives an attacker full control over subscriptions, key vaults and storage accounts. MITRE: Persistence and Privilege Escalation, Account Manipulation T1098. Source guide: azure/azure-activity/README.md (C2).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureActivity
+    dataTypes:
+      - AzureActivity
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Persistence
+  - PrivilegeEscalation
+relevantTechniques:
+  - T1098
+query: |
+  // CUSTOM - High-privilege Azure RBAC role assignment created
+  // ASSUMPTION: Role definition GUIDs match built-in Owner (8e3af657-a8ff-443c-a75c-2fe8c4bcb635)
+  // and User Access Administrator (18d7d88d-d35e-4fb5-a5c3-7773c20a72d9).
+  // Confirm JSON shape of Properties.requestbody in one sample row before enabling.
+  let high_priv_roles = dynamic([
+      "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+      "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"
+  ]);
+  AzureActivity
+  | where TimeGenerated > ago(1h)
+  | where OperationNameValue =~ "MICROSOFT.AUTHORIZATION/ROLEASSIGNMENTS/WRITE"
+  | where ActivityStatusValue in~ ("Success", "Succeeded")
+  | extend RequestBody = parse_json(tostring(parse_json(Properties).requestbody))
+  | extend RoleDefId = tostring(RequestBody.Properties.RoleDefinitionId)
+  | extend PrincipalId = tostring(RequestBody.Properties.PrincipalId)
+  | where RoleDefId has_any (high_priv_roles)
+  | project TimeGenerated, SubscriptionId, Caller, CallerIpAddress, RoleDefId, PrincipalId, ResourceId
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Caller
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: CallerIpAddress
+  - entityType: AzureResource
+    fieldMappings:
+      - identifier: ResourceId
+        columnName: ResourceId
+version: 1.0.0
+kind: Scheduled

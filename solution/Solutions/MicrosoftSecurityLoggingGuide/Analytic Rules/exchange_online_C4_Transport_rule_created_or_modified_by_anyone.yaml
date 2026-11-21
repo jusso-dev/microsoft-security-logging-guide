@@ -1,0 +1,44 @@
+id: 405a7de0-edf2-516d-8956-3371e8421e8b
+name: 'Exchange Online - Transport rule created or modified by anyone'
+description: |
+  Feed approved_admins from a watchlist of the people allowed to change mail flow. Any other editor warrants a question. MITRE: Collection T1114, Defense Evasion T1562. Source guide: email-collab/exchange-online/README.md (C4).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+  - Collection
+relevantTechniques:
+  - T1114
+  - T1562
+query: |
+  // CUSTOM - Any transport rule create or modify, not just redirects.
+  // The OOB rule only fires when BlindCopyTo or RedirectMessageTo is set. This
+  // catches quiet rule edits, so keep an approved-admin list to cut noise.
+  // Run daily over a 24h lookback to stay out of the OOB rule's way.
+  let approved_admins = dynamic(["mail-admin@yourdomain.gov.au"]);
+  OfficeActivity
+  | where TimeGenerated > ago(24h)
+  | where OfficeWorkload =~ "Exchange"
+  | where Operation in~ ("New-TransportRule", "Set-TransportRule")
+  | where UserId !in~ (approved_admins)
+  | project TimeGenerated, UserId, ClientIP, Operation, OfficeObjectId, Parameters
+  | order by TimeGenerated desc
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: UserId
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: ClientIP
+version: 1.0.0
+kind: Scheduled

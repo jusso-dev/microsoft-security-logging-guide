@@ -1,0 +1,34 @@
+id: 8414a04c-dbd3-5c27-bca6-c2d425c3ec48
+name: 'Defender for Cloud - Sharp Secure Score drop in a subscription'
+description: |
+  A sudden drop in Secure Score often means someone disabled a Defender plan, opened a public network rule or weakened storage or Key Vault protections. MITRE: Defense Evasion, Impair Defenses T1562. Source guide: azure/defender-for-cloud/README.md (C1).
+severity: Medium
+status: Available
+requiredDataConnectors:
+  - connectorId: AzureSecurityCenter
+    dataTypes:
+      - SecureScores
+queryFrequency: 1d
+queryPeriod: 7d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562
+query: |
+  // CUSTOM - Subscription Secure Score drops by more than 10 percent compared to the prior 7-day peak
+  // ASSUMPTION: Continuous export for Secure score is enabled and writes to SecureScores.
+  // Check column names PercentageScore and SubscriptionId in a sample row before enabling.
+  let baseline = SecureScores
+      | where TimeGenerated between (ago(7d) .. ago(1d))
+      | summarize MaxScore7d = max(PercentageScore) by SubscriptionId;
+  SecureScores
+  | where TimeGenerated > ago(1d)
+  | summarize arg_max(TimeGenerated, PercentageScore, CurrentScore, MaxScore) by SubscriptionId
+  | join kind=inner baseline on SubscriptionId
+  | extend DropPercent = round((MaxScore7d - PercentageScore) * 100, 1)
+  | where DropPercent >= 10
+  | project TimeGenerated, SubscriptionId, MaxScore7d, PercentageScore, DropPercent
+version: 1.0.0
+kind: Scheduled

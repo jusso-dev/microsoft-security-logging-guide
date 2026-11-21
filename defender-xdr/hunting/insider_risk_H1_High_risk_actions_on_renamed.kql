@@ -1,0 +1,5 @@
+DataSecurityEvents
+| where Timestamp > ago(14d)
+| where isnotempty(FileRenameInfo)
+| project Timestamp, DeviceName, IsManagedDevice, FileRenameInfo, DlpPolicyMatchInfo, ApplicationNames
+| order by Timestamp desc

@@ -1,0 +1,25 @@
+id: 7cbea99d-8897-596f-bc33-59ec90425cc2
+name: 'Sentinel Watchlists - Stale watchlists not updated in 30 days'
+description: |
+  Identifies Microsoft Sentinel watchlists that have not been updated in over 30 days so detections relying on enrichment stay accurate. Source guide: docs/watchlists.md.
+requiredDataConnectors:
+  - connectorId: MicrosoftSentinelWatchlists
+    dataTypes:
+      - Watchlist
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1562
+query: |
+  // Which watchlists have not been touched in 30 days?
+  // ASSUMPTION: lists expected to change more often, like leavers, deserve a shorter window.
+  Watchlist
+  | where TimeGenerated > ago(60d)
+  | summarize Items = count(), LastUpdate = max(LastUpdatedTimeUTC) by WatchlistAlias
+  | where LastUpdate < ago(30d)
+entityMappings:
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: WatchlistAlias
+version: 1.0.0

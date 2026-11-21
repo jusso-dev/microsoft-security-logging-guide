@@ -1,0 +1,47 @@
+id: 5b5d3386-2b5c-5166-8839-c9e3d574b06a
+name: 'GitHub (Enterprise Cloud) - Branch protection disabled, workflow permissions weakened or unexpected PAT/SSH key created'
+description: |
+  MITRE ATT&CK: Persistence T1098 (Account Manipulation) and Initial Access T1195.002 (Compromise Software Supply Chain). Source guide: devops/github/README.md (C3).
+severity: High
+status: Available
+requiredDataConnectors:
+  - connectorId: GitHubEnterpriseAuditLog
+    dataTypes:
+      - GitHubAuditData
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+  - Persistence
+relevantTechniques:
+  - T1098
+  - T1195.002
+query: |
+  // CUSTOM - High-risk persistence and supply-chain tampering in GitHub Enterprise
+  // ASSUMPTION: GitHubAuditData exposes Action, Actor, Org, Repo and ActorIp.
+  // Review and tune against your platform engineering automation accounts.
+  let approved_automation = dynamic(["github-platform-bot"]);
+  GitHubAuditData
+  | where TimeGenerated > ago(1h)
+  | where Action in~ (
+      "protected_branch.destroy",
+      "protected_branch.policy_override",
+      "repository_ruleset.destroy",
+      "workflows.update_workflow_permissions",
+      "org.add_member",
+      "org.update_member",
+      "personal_access_token.request_created",
+      "personal_access_token.access_granted",
+      "public_key.create"
+  )
+  | where Actor !in~ (approved_automation)
+  | project TimeGenerated, Actor, ActorIp, Country, Org, Repo, Action
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: Actor
+version: 1.0.0
+kind: Scheduled

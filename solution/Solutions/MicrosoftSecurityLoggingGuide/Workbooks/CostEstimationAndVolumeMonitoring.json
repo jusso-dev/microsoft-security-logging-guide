@@ -1,0 +1,121 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Microsoft Security Logging Guide: Cost Estimation and Volume Monitoring\n\nMeasures billable versus free GB per table and solution, detects daily ingestion spikes, identifies top noisy event IDs and hosts for DCR filtering, and calculates daily GB percentiles for commitment tier sizing. Built from `queries/cost/` and `docs/cost-estimation.md`."
+      },
+      "name": "header-cost"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// 06. Commitment tier sizing: daily billable GB distribution over 30 complete days\n// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.\n// Compare DailyAvgGB, P50, P90 and P95 against regional Sentinel pay-as-you-go vs 100 GB/day+ commitment tiers.\nUsage\n| where StartTime >= startofday(ago(31d)) and EndTime < startofday(now())\n| where IsBillable == true\n| summarize DailyBillableGB = sum(Quantity) / 1000.0 by Day = bin(StartTime, 1d)\n| summarize\n    DaysMeasured = count(),\n    MinGB = round(min(DailyBillableGB), 2),\n    AvgGB = round(avg(DailyBillableGB), 2),\n    P50_GB = round(percentile(DailyBillableGB, 50), 2),\n    P90_GB = round(percentile(DailyBillableGB, 90), 2),\n    P95_GB = round(percentile(DailyBillableGB, 95), 2),\n    MaxGB = round(max(DailyBillableGB), 2),\n    Total30dGB = round(sum(DailyBillableGB), 2)",
+        "size": 1,
+        "title": "Commitment tier sizing (30-day daily billable GB percentiles)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "cost-commitment-sizing"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// 04. Daily billable GB trend over 30 days with anomaly detection\n// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.\n// Flags sudden ingestion spikes caused by runaway diagnostic settings, misconfigured DCRs or attack floods.\nlet start = startofday(ago(31d));\nlet end = startofday(now());\nUsage\n| where StartTime >= start and EndTime < end\n| where IsBillable == true\n| make-series DailyGB = round(sum(Quantity) / 1000.0, 2) default=0 on StartTime from start to end step 1d\n| extend (Anomalies, Score, Baseline) = series_decompose_anomalies(DailyGB, 1.5, -1, 'linefit')\n| mv-expand StartTime to typeof(datetime), DailyGB to typeof(real), Baseline to typeof(real), Anomalies to typeof(real), Score to typeof(real)\n| project Day = format_datetime(StartTime, \"yyyy-MM-dd\"), DailyGB, BaselineGB = round(Baseline, 2), AnomalyFlag = Anomalies, Score = round(Score, 2)\n| order by Day desc",
+        "size": 1,
+        "title": "Daily billable GB trend and anomaly flags (30 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "cost-daily-anomalies"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// 01. Billable vs free GB per table over the last 30 complete days\n// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.\n// Note: Azure Sentinel billing measures GB in decimal (10^9 bytes), so Usage.Quantity (MB) divides by 1000.0.\nlet lookback = 30d;\nlet raw = Usage\n    | where StartTime >= startofday(ago(lookback + 1d)) and EndTime < startofday(now())\n    | summarize\n        BillableGB = sumif(Quantity, IsBillable == true) / 1000.0,\n        FreeGB = sumif(Quantity, IsBillable == false) / 1000.0\n        by DataType;\nlet totalBillable = toscalar(raw | summarize sum(BillableGB));\nraw\n| extend\n    DailyAvgBillableGB = round(BillableGB / 30.0, 2),\n    BillableGB = round(BillableGB, 2),\n    FreeGB = round(FreeGB, 2),\n    SharePct = iff(totalBillable > 0, round(BillableGB * 100.0 / totalBillable, 1), 0.0)\n| project DataType, DailyAvgBillableGB, BillableGB, FreeGB, SharePct\n| order by BillableGB desc",
+        "size": 2,
+        "title": "Billable vs free GB per table (30 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "cost-gb-per-table"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// 02. Billable GB by Sentinel solution and data type over the last 30 complete days\n// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.\nUsage\n| where StartTime >= startofday(ago(31d)) and EndTime < startofday(now())\n| where IsBillable == true\n| extend SolutionGroup = iff(Solution == \"SecurityInsights\", \"MicrosoftSentinel\", Solution)\n| summarize\n    BillableGB30d = round(sum(Quantity) / 1000.0, 2),\n    DailyAvgGB = round(sum(Quantity) / 1000.0 / 30.0, 2)\n    by SolutionGroup, DataType\n| order by BillableGB30d desc",
+        "size": 1,
+        "title": "Billable GB by Sentinel solution and table (30 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "cost-gb-per-solution"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// 03. Estimated billable GB by Azure resource / connector source over the last 7 days\n// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.\n// Uses the _BilledSize system column across high-volume tables to pinpoint which resource or DCR drives spend.\n// ASSUMPTION: Not every workspace has all tables below; isfuzzy=true skips missing tables.\nunion withsource=Table isfuzzy=true\n    SecurityEvent, WindowsEvent, Syslog, CommonSecurityLog, AzureDiagnostics,\n    StorageBlobLogs, AKSAudit, AKSAuditAdmin, AZFWNetworkRule, AZFWApplicationRule,\n    SigninLogs, AADNonInteractiveUserSignInLogs, MicrosoftGraphActivityLogs\n| where TimeGenerated > ago(7d)\n| where _IsBillable == true\n| extend Source = coalesce(\n    tostring(column_ifexists(\"_ResourceId\", \"\")),\n    tostring(column_ifexists(\"Computer\", \"\")),\n    tostring(column_ifexists(\"DeviceVendor\", \"\")),\n    \"Tenant-scoped\"\n)\n| summarize\n    Events = count(),\n    GB7d = round(sum(_BilledSize) / 1e9, 3),\n    EstDailyGB = round(sum(_BilledSize) / 1e9 / 7.0, 3)\n    by Table, Source\n| order by GB7d desc\n| take 50",
+        "size": 2,
+        "title": "Estimated billable GB by Azure resource and source (7 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "cost-gb-per-resource"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// 05. Top noisy Windows Event IDs, hosts, and AzureDiagnostics categories over 7 days\n// Run in: Defender portal > Advanced hunting (with Sentinel workspace selected) or Log Analytics Logs.\n// Run each section separately or unioned to decide what to filter in DCRs or move to the Data lake tier.\n\n// 5a. Top noisy Windows SecurityEvent IDs by billed GB\nSecurityEvent\n| where TimeGenerated > ago(7d)\n| where _IsBillable == true\n| summarize\n    Events = count(),\n    GB7d = round(sum(_BilledSize) / 1e9, 3),\n    UniqueHosts = dcount(Computer)\n    by EventID, Activity\n| order by GB7d desc\n| take 20",
+        "size": 1,
+        "title": "Top noisy Windows SecurityEvent IDs (7 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "cost-noisy-1"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// 5b. Top noisy accounts in SecurityEvent (often service accounts or scanners)\nSecurityEvent\n| where TimeGenerated > ago(7d)\n| where _IsBillable == true\n| where isnotempty(Account)\n| summarize\n    Events = count(),\n    GB7d = round(sum(_BilledSize) / 1e9, 3),\n    EventIDs = make_set(EventID, 10)\n    by Account\n| order by GB7d desc\n| take 20",
+        "size": 1,
+        "title": "Top noisy accounts in SecurityEvent (7 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "cost-noisy-2"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// 5c. Top noisy AzureDiagnostics resource types and categories\nAzureDiagnostics\n| where TimeGenerated > ago(7d)\n| where _IsBillable == true\n| summarize\n    Events = count(),\n    GB7d = round(sum(_BilledSize) / 1e9, 3),\n    Resources = dcount(_ResourceId)\n    by ResourceType, Category\n| order by GB7d desc\n| take 20",
+        "size": 1,
+        "title": "Top noisy AzureDiagnostics categories and resources (7 days)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "cost-noisy-3"
+    }
+  ],
+  "isLocked": false,
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ],
+  "fromTemplateId": "sentinel-MicrosoftSecurityLoggingGuide-CostMonitoring"
+}
