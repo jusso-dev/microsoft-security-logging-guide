@@ -185,9 +185,12 @@ jobs:
           show_full_output: "false"
           display_report: "false"
           allow_fork_prs: "false"
+          # Bound API spend instead of turns: the pinned action rejects even a
+          # successful result above --max-turns (issue #53: 28 turns > 25).
+          # Keep the job timeout and independent validation gates as hard limits.
           claude_args: >-
             --model ${{ inputs.model || 'haiku' }}
-            --max-turns 25
+            --max-budget-usd 1.00
             --permission-mode default
             --allowedTools "Read" "Edit" "Write" "Glob" "Grep" "WebFetch" "WebSearch" "Bash(date:*)" "Bash(npm run check)" "Bash(npm run check:*)" "Bash(git status:*)" "Bash(git diff:*)"
             --disallowedTools "Read(/proc/**)" "Read(/sys/**)" "Read(**/.env)" "Read(**/.env.*)" "Edit(.github/**)" "Write(.github/**)" "Edit(scripts/**)" "Write(scripts/**)" "Edit(.claude/**)" "Write(.claude/**)" "Edit(package.json)" "Write(package.json)" "Edit(package-lock.json)" "Write(package-lock.json)" "Bash(env:*)" "Bash(printenv:*)" "Bash(curl:*)" "Bash(wget:*)" "Bash(git push:*)" "Bash(git commit:*)" "Bash(gh:*)"
