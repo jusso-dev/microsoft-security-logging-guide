@@ -1,6 +1,6 @@
 # Microsoft Purview Information Protection
 
-> Status: verified. Priority: P3. Last verified: 21 Nov 2026.
+> Status: verified. Priority: P3. Last verified: 25 Nov 2026.
 
 ## What it is
 
@@ -22,7 +22,7 @@ Label telemetry spans the dedicated Sentinel table, the Microsoft 365 unified au
 | Source | Table name | Connector | Tier | Cost / volume | Value |
 |---|---|---|---|---|---|
 | Purview Information Protection audit | `MicrosoftPurviewInformationProtection` | Microsoft Purview Information Protection | Analytics (review volume if using scanners) | Medium; billable in Sentinel, covered by the M365 E5 5 MB/user/day data grant ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/billing)) | Dedicated schema (`LabelEventType`, `SensitivityLabelId`, `SensitivityLabelPolicyId`, `SensitiveInfoTypeData`, `RuleActions`) for labelling clients, built-in labelling, protection actions and on-premises scanner runs ([table reference](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/microsoftpurviewinformationprotection)). |
-| M365 sensitivity label audit | `OfficeActivity` | Office 365 (Microsoft 365 solution) | Analytics | Free in Sentinel; low to medium volume ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/billing)) | Captures `SensitivityLabelApplied`, `SensitivityLabelUpdated`, `SensitivityLabelRemoved`, `FileSensitivityLabelApplied`, `FileSensitivityLabelChanged`, `SiteSensitivityLabelChanged` and apply failures across M365 apps, SharePoint, OneDrive and Teams ([Microsoft Learn](https://learn.microsoft.com/en-us/purview/audit-log-activities)). |
+| M365 sensitivity label audit | `OfficeActivity` | Office 365 (Microsoft 365 solution) | Analytics | Free in Sentinel; low to medium volume ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/billing)) | Captures `SensitivityLabelApplied`, `SensitivityLabelUpdated`, `SensitivityLabelRemoved`, `FileSensitivityLabelApplied`, `FileSensitivityLabelChanged`, `FileSensitivityLabelRemoved`, `SiteSensitivityLabelApplied`, `SiteSensitivityLabelChanged`, `SiteSensitivityLabelRemoved` and apply, change and remove failures across M365 apps, SharePoint, OneDrive and Teams ([Microsoft Learn](https://learn.microsoft.com/en-us/purview/audit-log-activities)). |
 | Endpoint file label context | `DeviceFileEvents` | Microsoft Defender XDR | Already in Defender XDR, or Data lake in Sentinel | Free in Defender XDR (30 days); high and billable in Sentinel (eligible for M365 E5 5 MB grant) | Populates `SensitivityLabel`, `SensitivitySubLabel` and `IsAzureInfoProtectionApplied` on endpoint file operations for exfiltration hunting ([table reference](https://learn.microsoft.com/en-us/defender-xdr/advanced-hunting-devicefileevents-table)). |
 | Cloud app label and sharing context | `CloudAppEvents` | Microsoft Defender XDR | Already in Defender XDR, or Data lake in Sentinel | Free in Defender XDR (30 days); high and billable in Sentinel (eligible for M365 E5 5 MB grant) | Cloud file sharing, download and sensitivity label actions across Microsoft 365 and connected SaaS apps ([table reference](https://learn.microsoft.com/en-us/defender-xdr/advanced-hunting-cloudappevents-table)). |
 
@@ -198,7 +198,9 @@ OfficeActivity
 | where TimeGenerated > ago(1h)
 | where Operation in (
     "SensitivityLabelRemoved",
+    "FileSensitivityLabelRemoved",
     "SiteSensitivityLabelChanged",
+    "SiteSensitivityLabelRemoved",
     "Unlock-SPOSensitivityLabelEncryptedFile"
 )
 | summarize Events = count(), Targets = make_set(ObjectId, 10), Workloads = make_set(OfficeWorkload, 5)
@@ -250,7 +252,7 @@ Two practical hunting queries:
 ```kql
 OfficeActivity
 | where TimeGenerated > ago(7d)
-| where Operation in ("FileSensitivityLabelApplyFailed", "FileSensitivityLabelChangeFailed")
+| where Operation in ("FileSensitivityLabelApplyFailed", "FileSensitivityLabelChangeFailed", "FileSensitivityLabelRemoveFailed")
 | summarize Failures = count() by Operation, OfficeWorkload, UserId
 | order by Failures desc
 ```
@@ -294,4 +296,4 @@ MicrosoftPurviewInformationProtection
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn, the Defender XDR schema references and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+25 Nov 2026, against Microsoft Learn, the Defender XDR schema references and the Azure-Sentinel repo. The sensitivity label operation list was checked against the Purview audit log activities page on this date. Re-verify before relying on table names, navigation or rule names.

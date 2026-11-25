@@ -1,6 +1,6 @@
 # Microsoft Dataverse and Dynamics 365
 
-> Status: verified. Priority: P2. Last verified: 21 Nov 2026.
+> Status: verified. Priority: P2. Last verified: 25 Nov 2026.
 
 ## What it is
 
@@ -328,4 +328,4 @@ Microsoft recommends querying watchlists through the bundled parsers (`MSBizApps
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+25 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Changed
+
+- **25 Nov 2026 nightly refresh.** Five guides re-checked against upstream changes:
+  - [Microsoft Purview Information Protection](data-security/information-protection/README.md): added the missing `FileSensitivityLabelRemoved`, `SiteSensitivityLabelApplied`, `SiteSensitivityLabelRemoved` and `FileSensitivityLabelRemoveFailed` operations from the Purview audit log activities page. The mass removal rule now covers Office for the web and SharePoint removals.
+  - [Azure networking](azure/network-nsg-flow-firewall/README.md): noted the Front Door WAF category for Standard/Premium (`FrontDoorWebApplicationFirewallLog`) and the classic variant (`FrontdoorWebApplicationFirewallLog`), per the updated WAF monitoring page.
+  - [Microsoft Defender for Cloud Apps](cloud-apps/defender-for-cloud-apps/README.md): GitHub connection guidance now states that an Enterprise-level connection disables existing Organization-level connectors, and lists the licence and owner prerequisites, per the updated GitHub protection page.
+  - [Dataverse and Dynamics 365](business-apps/dataverse-dynamics-365/README.md) and [Power Platform](business-apps/power-platform/README.md): no content change. The upstream `Azure/Azure-Sentinel` commit `16de03e` only removed a 3.2.6 release-note line. The minimum solution version (3.2.5) is unchanged.
+
 ## 1.0.0 - 2026-11-21
 
 ### Added

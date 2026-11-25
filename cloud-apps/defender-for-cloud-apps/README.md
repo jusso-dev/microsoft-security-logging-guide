@@ -1,6 +1,6 @@
 # Microsoft Defender for Cloud Apps
 
-> Status: verified. Priority: P2. Last verified: 21 Nov 2026.
+> Status: verified. Priority: P2. Last verified: 25 Nov 2026.
 
 ## What it is
 
@@ -70,7 +70,7 @@ MDCA permissions integrate with Microsoft Defender unified RBAC, available world
 
 1. Confirm licences and the Security Administrator role.
 2. In the [Microsoft Defender portal](https://security.microsoft.com), go to **Settings > Cloud apps > App connectors**, select **+ Connect an app > Microsoft 365**, and in the components page tick **Microsoft 365 activities**. This is the switch that populates `CloudAppEvents`.
-3. Connect each SaaS app you care about from the same **+ Connect an app** menu. For GitHub, Microsoft now recommends connecting at the Enterprise level with a new connector instance ([protect GitHub](https://learn.microsoft.com/en-us/defender-cloud-apps/protect-github)).
+3. Connect each SaaS app you care about from the same **+ Connect an app** menu. For GitHub Enterprise Cloud, Microsoft recommends connecting at the Enterprise level. This needs an enterprise owner account and a GitHub Enterprise Cloud licence. Connecting at Enterprise level automatically disables existing Organization-level GitHub connectors for organisations in that enterprise, which prevents duplicate events ([protect GitHub](https://learn.microsoft.com/en-us/defender-cloud-apps/protect-github)).
 4. Turn on app governance: **Settings > Cloud apps > App governance**.
 5. Confirm anomaly detections are active: **Cloud Apps > Policies > Policy management**, filter policy type to Anomaly detection policy. They are on by default and learn for seven days ([anomaly detection policies](https://learn.microsoft.com/en-us/defender-cloud-apps/anomaly-detection-policy)). Tune the impossible travel sensitivity slider and scope noisy policies.
 6. In Sentinel in the Defender portal, go to **Configuration > Data connectors**, open **Microsoft Defender XDR**, and select **Open connector page**.
@@ -365,4 +365,4 @@ CloudAppEvents
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn and the Azure-Sentinel GitHub repo. Every table name, connector behaviour, rule name and licence statement above was checked against the linked page on that date, except the standalone SKU retirement date, which Microsoft does not publish on Learn and which is flagged in this guide. Re-verify before relying on table names or rule names.
+25 Nov 2026, against Microsoft Learn and the Azure-Sentinel GitHub repo. Every table name, connector behaviour, rule name and licence statement above was checked against the linked page on that date, except the standalone SKU retirement date, which Microsoft does not publish on Learn and which is flagged in this guide. Re-verify before relying on table names or rule names.

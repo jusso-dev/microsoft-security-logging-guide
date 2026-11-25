@@ -1,6 +1,6 @@
 # Azure networking (VNet flow logs, Azure Firewall, WAF, DNS and DDoS)
 
-> Status: verified. Priority: P2. Last verified: 21 Nov 2026.
+> Status: verified. Priority: P2. Last verified: 25 Nov 2026.
 
 ## What it is
 
@@ -25,7 +25,7 @@ Azure networking telemetry spans four layers: Virtual Network (VNet) flow logs v
 | VNet flow logs (Traffic Analytics) | `NTANetAnalytics` | Network Watcher Traffic Analytics (Storage to Log Analytics) | Data lake | Very high | Enriched VNet-level flow records, public/private classification and `MaliciousFlow` tagging. Replaces legacy NSG flow logs and `AzureNetworkAnalytics_CL` ([table reference](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/ntanetanalytics)). |
 | Application Gateway WAF | `AGWFirewallLogs` | Azure Web Application Firewall (diagnostic settings, resource-specific) | Analytics (Data lake if untuned Detection mode) | Medium | OWASP CRS and custom WAF rule matches (SQLi, XSS, scanners, code injection). Feeds WAF Content Hub rules ([table reference](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/agwfirewalllogs)). |
 | Application Gateway access logs | `AGWAccessLogs` | Application Gateway (diagnostic settings, resource-specific) | Data lake | High to very high | Every HTTP/HTTPS request passing through Application Gateway. Investigation context only ([table reference](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/agwaccesslogs)). |
-| Azure Front Door WAF | `AzureDiagnostics` (`Category == "FrontDoorWebApplicationFirewallLog"`) | Azure Web Application Firewall (diagnostic settings) | Analytics (Data lake if noisy) | Medium to high | Edge WAF rule hits on Front Door Standard/Premium ([Front Door WAF monitoring](https://learn.microsoft.com/en-us/azure/web-application-firewall/afds/waf-front-door-monitor)). |
+| Azure Front Door WAF | `AzureDiagnostics` (`Category == "FrontDoorWebApplicationFirewallLog"`) | Azure Web Application Firewall (diagnostic settings) | Analytics (Data lake if noisy) | Medium to high | Edge WAF rule hits on Front Door Standard/Premium, where the category is `FrontDoorWebApplicationFirewallLog`. Classic Front Door uses `FrontdoorWebApplicationFirewallLog` ([Front Door WAF monitoring](https://learn.microsoft.com/en-us/azure/web-application-firewall/afds/waf-front-door-monitor)). |
 | Azure DNS security policy | `DNSQueryLogs` | DNS resolver policy (diagnostic settings) | Data lake (or transform `Block`/`Alert` rows to Analytics) | High to very high | VNet-level public and private DNS queries plus `ResolverPolicyRuleAction` (`Allow`, `Block`, `Alert`) for threat-intel DNS hits ([table reference](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/dnsquerylogs)). |
 | Azure DDoS notifications and mitigation flows | `AzureDiagnostics` (`Category == "DDoSProtectionNotifications"`, `Category == "DDoSMitigationFlowLogs"`) | Azure DDoS Protection (diagnostic settings on Public IPs) | Analytics for notifications; Data lake for mitigation flows | Very low for notifications; high during an active attack for flow logs | Real-time attack start/stop alerts and packet-drop forensics during DDoS mitigation ([DDoS diagnostic logging](https://learn.microsoft.com/en-us/azure/ddos-protection/diagnostic-logging)). |
 
@@ -308,4 +308,4 @@ Keep automated IP blocking behind an approval step or strict allow-list so a spo
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+25 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
