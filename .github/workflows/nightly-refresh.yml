@@ -171,8 +171,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install MkDocs Material
-        run: pip install "mkdocs-material==9.8.2"
+      - name: Install MkDocs Material and PyYAML
+        run: pip install "mkdocs-material==9.8.2" pyyaml
 
       - name: Update drifted guides with Claude Code
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1
@@ -223,6 +223,16 @@ jobs:
           # tree cannot weaken it. A failure here aborts the job before any push or PR.
           git show HEAD:scripts/check-secrets.py | python3 - --mode working-tree --enforce-refresh-scope
 
+      # Guide KQL edits must flow into the packaged Sentinel solution and
+      # Defender XDR rules, or CI's sync check fails on the pushed commit.
+      # Runs after the scope guard, so scripts/ is unchanged from HEAD here.
+      - name: Gate 0 - Rebuild and validate Sentinel solution
+        id: gate_solution
+        continue-on-error: true
+        run: |
+          python3 scripts/build_solution.py
+          python3 scripts/validate_sentinel.py
+
       - name: Gate 1 - Markdown lint
         id: gate_md
         continue-on-error: true
@@ -271,6 +281,7 @@ jobs:
         id: land
         env:
           GH_TOKEN: ${{ github.token }}
+          GATE_SOLUTION: ${{ steps.gate_solution.outcome }}
           GATE_MD: ${{ steps.gate_md.outcome }}
           GATE_STYLE: ${{ steps.gate_style.outcome }}
           GATE_MERMAID: ${{ steps.gate_mermaid.outcome }}
@@ -290,7 +301,8 @@ jobs:
           TODAY=$(date -u +%Y-%m-%d)
           CHANGED=$(git status --short | awk '{print $2}' | tr '\n' ' ')
 
-          if [ "$GATE_MD" = "success" ] && \
+          if [ "$GATE_SOLUTION" = "success" ] && \
+             [ "$GATE_MD" = "success" ] && \
              [ "$GATE_STYLE" = "success" ] && \
              [ "$GATE_MERMAID" = "success" ] && \
              [ "$GATE_LINKS" = "success" ] && \
@@ -312,6 +324,7 @@ jobs:
               --body "$(cat <<EOF
           Automated nightly refresh ran on ${TODAY}, but one or more CI gates failed so changes were NOT pushed to \`main\`.
 
+          - Sentinel solution rebuild and validation: \`${GATE_SOLUTION}\`
           - Markdown lint: \`${GATE_MD}\`
           - Style check: \`${GATE_STYLE}\`
           - Mermaid check: \`${GATE_MERMAID}\`
