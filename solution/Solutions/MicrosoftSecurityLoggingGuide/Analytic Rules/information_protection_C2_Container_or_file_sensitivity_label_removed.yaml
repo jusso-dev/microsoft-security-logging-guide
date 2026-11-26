@@ -27,7 +27,9 @@ query: |
   | where TimeGenerated > ago(1h)
   | where Operation in (
       "SensitivityLabelRemoved",
+      "FileSensitivityLabelRemoved",
       "SiteSensitivityLabelChanged",
+      "SiteSensitivityLabelRemoved",
       "Unlock-SPOSensitivityLabelEncryptedFile"
   )
   | summarize Events = count(), Targets = make_set(ObjectId, 10), Workloads = make_set(OfficeWorkload, 5)

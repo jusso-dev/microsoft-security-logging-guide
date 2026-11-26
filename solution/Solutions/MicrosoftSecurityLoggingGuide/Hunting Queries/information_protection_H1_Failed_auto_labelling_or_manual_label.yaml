@@ -11,7 +11,7 @@ tactics:
 query: |
   OfficeActivity
   | where TimeGenerated > ago(7d)
-  | where Operation in ("FileSensitivityLabelApplyFailed", "FileSensitivityLabelChangeFailed")
+  | where Operation in ("FileSensitivityLabelApplyFailed", "FileSensitivityLabelChangeFailed", "FileSensitivityLabelRemoveFailed")
   | summarize Failures = count() by Operation, OfficeWorkload, UserId
   | order by Failures desc
 entityMappings:

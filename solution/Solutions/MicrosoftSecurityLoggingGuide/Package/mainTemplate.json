@@ -7031,7 +7031,7 @@
                 "description": "Uses the free OfficeActivity table to detect removal of sensitivity labels on files, SharePoint sites, Teams or Loop workspaces, including decryption via PowerShell (Unlock-SPOSensitivityLabelEncryptedFile). Run hourly in Sentinel with a 1-hour lookback. MITRE: Defense Evasion T1562 and Exfiltration T1530. Source guide: data-security/information-protection/README.md (C2).",
                 "displayName": "Purview Information Protection - Container or file sensitivity label removed in Microsoft 365",
                 "enabled": false,
-                "query": "// CUSTOM - Sensitivity label removal or decryption cmdlet in OfficeActivity\n// ASSUMPTION: Confirm Operation names in your tenant with:\n//   OfficeActivity | where TimeGenerated > ago(30d) | where Operation has \"SensitivityLabel\" | distinct Operation\nOfficeActivity\n| where TimeGenerated > ago(1h)\n| where Operation in (\n    \"SensitivityLabelRemoved\",\n    \"SiteSensitivityLabelChanged\",\n    \"Unlock-SPOSensitivityLabelEncryptedFile\"\n)\n| summarize Events = count(), Targets = make_set(ObjectId, 10), Workloads = make_set(OfficeWorkload, 5)\n    by UserId, Operation, ClientIP\n| where Operation == \"Unlock-SPOSensitivityLabelEncryptedFile\" or Events >= 5\n| order by Events desc",
+                "query": "// CUSTOM - Sensitivity label removal or decryption cmdlet in OfficeActivity\n// ASSUMPTION: Confirm Operation names in your tenant with:\n//   OfficeActivity | where TimeGenerated > ago(30d) | where Operation has \"SensitivityLabel\" | distinct Operation\nOfficeActivity\n| where TimeGenerated > ago(1h)\n| where Operation in (\n    \"SensitivityLabelRemoved\",\n    \"FileSensitivityLabelRemoved\",\n    \"SiteSensitivityLabelChanged\",\n    \"SiteSensitivityLabelRemoved\",\n    \"Unlock-SPOSensitivityLabelEncryptedFile\"\n)\n| summarize Events = count(), Targets = make_set(ObjectId, 10), Workloads = make_set(OfficeWorkload, 5)\n    by UserId, Operation, ClientIP\n| where Operation == \"Unlock-SPOSensitivityLabelEncryptedFile\" or Events >= 5\n| order by Events desc",
                 "queryFrequency": "PT1H",
                 "queryPeriod": "PT1H",
                 "severity": "Medium",
@@ -16347,7 +16347,7 @@
                 "eTag": "*",
                 "displayName": "Purview Information Protection - Failed auto-labelling or manual label applications in OfficeActivity",
                 "category": "Hunting Queries",
-                "query": "OfficeActivity\n| where TimeGenerated > ago(7d)\n| where Operation in (\"FileSensitivityLabelApplyFailed\", \"FileSensitivityLabelChangeFailed\")\n| summarize Failures = count() by Operation, OfficeWorkload, UserId\n| order by Failures desc",
+                "query": "OfficeActivity\n| where TimeGenerated > ago(7d)\n| where Operation in (\"FileSensitivityLabelApplyFailed\", \"FileSensitivityLabelChangeFailed\", \"FileSensitivityLabelRemoveFailed\")\n| summarize Failures = count() by Operation, OfficeWorkload, UserId\n| order by Failures desc",
                 "version": 2,
                 "tags": [
                   {
