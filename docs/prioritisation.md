@@ -1,6 +1,6 @@
 # Prioritisation
 
-> Status: verified. Last verified: 21 Nov 2026.
+> Status: verified. Last verified: 26 Nov 2026.
 
 What to onboard first, and why. This matrix maps every product guide in this repo to the May 2025 ASD ACSC [Priority logs for SIEM ingestion: practitioner guidance](https://www.cyber.gov.au/sites/default/files/2025-05/Priority%20logs%20for%20SIEM%20ingestion%20-%20Practitioner%20guidance.pdf) PDF (with exact page references) and to Microsoft's [Prioritize data connectors for Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/prioritize-data-connectors) guidance.
 
@@ -84,4 +84,4 @@ Start with sources that cost zero Sentinel ingestion ([free data sources](https:
 
 ## Last verified
 
-21 Nov 2026, against the May 2025 ASD ACSC practitioner guidance PDF and Microsoft Learn.
+26 Nov 2026, against the May 2025 ASD ACSC practitioner guidance PDF and Microsoft Learn.

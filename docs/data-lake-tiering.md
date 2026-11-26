@@ -1,6 +1,6 @@
 # Data lake tiering guidance
 
-> Status: verified. Last verified: 21 Nov 2026.
+> Status: verified. Last verified: 26 Nov 2026.
 
 Microsoft Sentinel runs on two storage tiers: the **Analytics tier** (indexed hot storage for near-real-time analytic rules, custom detections, live hunting and workbooks) and the **Data lake tier** (open-format Parquet storage for low-cost ingestion, up to 12 years of retention, KQL jobs, summary rules and Jupyter notebooks) ([data lake overview](https://learn.microsoft.com/en-us/azure/sentinel/datalake/sentinel-lake-overview), [direct ingestion guidance](https://learn.microsoft.com/en-us/azure/sentinel/datalake/sentinel-lake-log-ingestion-guidance)).
 
@@ -133,4 +133,4 @@ Every active table documented across the 38 product guides in this repository is
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn.
+26 Nov 2026, against Microsoft Learn.

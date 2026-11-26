@@ -1,6 +1,6 @@
 # Azure App Service and Azure Functions
 
-> Status: verified. Priority: P3. Last verified: 21 Nov 2026.
+> Status: verified. Priority: P3. Last verified: 26 Nov 2026.
 
 ## What it is
 
@@ -29,7 +29,7 @@ All App Service and Function App diagnostic categories route via Azure Monitor d
 | Defender for App Service alerts | `SecurityAlert` | Microsoft Defender for Cloud | Analytics | Free Sentinel ingestion. Plan billed per App Service plan compute instance | Cloud-native and runtime detections: web shells, RCE, injection, crypto-mining and dangling DNS ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-app-service-introduction)). |
 | App Service control plane | `AzureActivity` | Azure Activity | Analytics | Free Sentinel ingestion, low volume | Publishing profile exports, basic auth toggles, app setting edits and slot swaps ([table reference](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/azureactivity)). |
 
-Optional categories on `Microsoft.Web/sites` worth enabling when relevant: `AppServiceAuthenticationLogs` (if using built-in Easy Auth), `AppServiceAntivirusScanAuditLogs` and `AppServiceFileAuditLogs` (Windows plans, file modification tracking).
+Optional categories on `Microsoft.Web/sites` worth enabling when relevant: `AppServiceAuthenticationLogs` (if using built-in Easy Auth), `AppServiceFileAuditLogs` (file changes on Windows and Windows container apps) and `AppServiceAntivirusScanAuditLogs` (Defender-backed scan results). The last two need the Premium tier or above ([monitoring reference](https://learn.microsoft.com/en-us/azure/app-service/monitor-app-service-reference)).
 
 ### What to ingest first
 
@@ -55,7 +55,8 @@ Optional categories on `Microsoft.Web/sites` worth enabling when relevant: `AppS
 | Task | Role |
 |---|---|
 | Install Content Hub solutions and create rules | Microsoft Sentinel Contributor on the resource group ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/sentinel-solutions-deploy)) |
-| Configure diagnostic settings and disable basic auth | Website Contributor (plus Log Analytics Contributor or Monitoring Contributor on the workspace) |
+| Configure diagnostic settings | Website Contributor (plus Log Analytics Contributor or Monitoring Contributor on the workspace) |
+| Disable FTP or SCM basic auth | Owner-level access to the app. Creating a custom role that blocks basic auth needs Owner or User Access Administrator on the subscription ([Disable basic auth](https://learn.microsoft.com/en-us/azure/app-service/configure-basic-auth-disable)) |
 | Assign Azure Policy at scale | Resource Policy Contributor at subscription or management group scope ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/connect-services-diagnostic-setting-based)) |
 | Enable Defender for App Service and connect Defender for Cloud | Security Admin or Subscription Owner on the subscription ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/connect-defender-for-cloud)) |
 
@@ -89,7 +90,7 @@ Optional categories on `Microsoft.Web/sites` worth enabling when relevant: `AppS
 Enable **Microsoft Defender for App Service** and eliminate legacy publishing credentials. See [Defender best-practice security configurations](../../docs/defender-best-practices.md#other-defender-for-cloud-workload-plans).
 
 - **Defender for App Service:** Enable at subscription scope to catch dangling DNS takeover attempts, web-shell/command-injection indicators and suspicious Kudu/SCM activity ([Defender for App Service](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-app-service-introduction)).
-- **Disable FTP & SCM basic auth:** Turn off both `ftp` and `scm` basic publishing credentials via Azure Policy and deploy using Microsoft Entra ID or OIDC federated CI/CD.
+- **Disable FTP & SCM basic auth:** Turn off both `ftp` and `scm` basic publishing credentials via Azure Policy and deploy using Microsoft Entra ID or OIDC federated CI/CD. Built-in audit and remediation policies cover FTP and SCM for apps and slots.
 - **Transport & secrets:** Enforce HTTPS-only, minimum TLS 1.2, Managed Identities with Key Vault references instead of plaintext app settings, and restrict inbound access with Private Endpoints or WAF / IP restrictions.
 
 ## Architecture diagram
@@ -273,9 +274,10 @@ FunctionAppLogs
 
 - **Publishing credentials are the highest-value signal, not raw HTTP logs.** Many teams ingest gigabytes of `AppServiceHTTPLogs` and skip `AppServiceAuditLogs`. Flip that priority: always ingest `AppServiceAuditLogs` into Analytics, disable FTP/SCM basic auth, and put raw HTTP/console logs into Data lake.
 - **No standalone Sentinel App Service solution.** Don't waste time looking for an "Azure App Service" analytic rule pack in Content Hub. Combine Defender for App Service (`SecurityAlert`), the Threat Intelligence IP rule (`AppServiceHTTPLogs`), `AzureActivity` and the custom detections above.
-- **Linux versus Windows log differences.** Some categories such as `AppServiceFileAuditLogs` and certain IIS fields behave differently or are Windows-only. Check `AppServiceConsoleLogs` for Linux container stdout/stderr and confirm which categories emit rows on your OS tier before writing rules ([monitored resources reference](https://learn.microsoft.com/en-us/azure/app-service/monitor-app-service-reference)).
+- **Linux versus Windows log differences.** `AppServiceFileAuditLogs` needs the Premium tier or above, and its Linux support is still listed as TBA. `AppServicePlatformLogs` is also TBA for Windows apps, so it only emits rows for Linux and Windows containers. `AppServiceConsoleLogs` covers Linux stdout/stderr, while Windows apps get output only for Java SE and Tomcat. Confirm which categories emit rows on your OS tier before writing rules ([monitored resources reference](https://learn.microsoft.com/en-us/azure/app-service/monitor-app-service-reference)).
 - **Consumption Functions and Application Insights overlap.** Azure Functions writes rich trace telemetry to Application Insights by default. Sending `FunctionAppLogs` to Log Analytics via diagnostic settings can overlap with workspace-based Application Insights `traces` and double-bill if you send both to the same workspace. Pick one path per Function App.
-- **Changing basic auth restarts the app.** Toggling FTP or SCM basic authentication in **Configuration** > **General settings** can trigger an app restart; schedule changes during a maintenance window ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/app-service/configure-basic-auth-disable)).
+- **FTP needs SCM basic auth.** Enabling FTP basic authentication requires SCM basic authentication to stay on. Turning SCM off also blocks Web Deploy and Git deploy, so check every deployment path first ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/app-service/configure-basic-auth-disable)).
+- **Adding a diagnostic setting restarts the app.** App Service adds app settings when you create a diagnostic setting, and that triggers a restart. Schedule it in a maintenance window ([Enable diagnostic logs](https://learn.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs)).
 - **Sentinel in the Azure portal retires on 31 March 2027.** Build and test rules in the Defender portal ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/sentinel/microsoft-sentinel-defender-portal)).
 
 ## Official links
@@ -302,4 +304,4 @@ FunctionAppLogs
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+26 Nov 2026, against Microsoft Learn. Re-verify before relying on table names, navigation or rule names.

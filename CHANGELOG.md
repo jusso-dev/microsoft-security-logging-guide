@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **26 Nov 2026 nightly refresh.** Five guides re-checked against upstream Microsoft Learn changes:
+  - [Azure App Service and Azure Functions](azure/app-service-functions/README.md): `AppServiceFileAuditLogs` and `AppServiceAntivirusScanAuditLogs` now note the Premium tier requirement, and the Linux and Windows gaps for `AppServiceFileAuditLogs` and `AppServicePlatformLogs` are documented. Disabling FTP or SCM basic auth now needs owner-level access to the app. Gotchas cover SCM basic auth for FTP and the app restart when a diagnostic setting is added.
+  - [Azure Storage](azure/storage/README.md): added Azure Files diagnostic setting guidance. Logs are set on the `file` resource, aren't sent to Log Analytics by default, and cover both `Microsoft.Storage` and `Microsoft.FileShares` shares.
+  - [Data lake tiering](docs/data-lake-tiering.md), [Defender XDR vs Sentinel](docs/defender-xdr-vs-sentinel.md) and [Prioritisation](docs/prioritisation.md): re-checked the ISOC retention page (updated 23 Nov 2026). The 90-day included retention covers Microsoft Defender and Microsoft Entra tables, not Azure Activity or Office 365 Activity, so the Defender XDR vs Sentinel text is corrected. No table names or tiers changed, so `queries/validation` is unchanged.
 - **25 Nov 2026 nightly refresh.** Five guides re-checked against upstream changes:
   - [Microsoft Purview Information Protection](data-security/information-protection/README.md): added the missing `FileSensitivityLabelRemoved`, `SiteSensitivityLabelApplied`, `SiteSensitivityLabelRemoved` and `FileSensitivityLabelRemoveFailed` operations from the Purview audit log activities page. The mass removal rule now covers Office for the web and SharePoint removals.
   - [Azure networking](azure/network-nsg-flow-firewall/README.md): noted the Front Door WAF category for Standard/Premium (`FrontDoorWebApplicationFirewallLog`) and the classic variant (`FrontdoorWebApplicationFirewallLog`), per the updated WAF monitoring page.

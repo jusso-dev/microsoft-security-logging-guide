@@ -1,6 +1,6 @@
 # Defender XDR vs Sentinel: avoiding duplication
 
-> Status: verified. Last verified: 21 Nov 2026.
+> Status: verified. Last verified: 26 Nov 2026.
 
 Microsoft Defender XDR already collects, stores and lets you hunt across endpoint, email, identity and cloud app telemetry at no Sentinel ingestion cost. Streaming the same raw tables into a Sentinel workspace without a clear reason is one of the fastest ways to overspend. This guide explains what stays in Defender XDR, when to stream to Sentinel, how to prevent duplicate incidents, and when to choose unified custom detections over Sentinel analytic rules.
 
@@ -9,7 +9,7 @@ Microsoft Defender XDR already collects, stores and lets you hunt across endpoin
 When you onboard Sentinel to the Microsoft Defender portal, you query Defender XDR tables and Sentinel workspace tables side by side in **Investigation & response > Advanced hunting** ([Microsoft Sentinel in the Defender portal](https://learn.microsoft.com/en-us/azure/sentinel/microsoft-sentinel-defender-portal)).
 
 - **Standard Defender XDR retention:** 30 days in the XDR default tier at no Sentinel ingestion or storage charge ([manage tables, tiers, and retention](https://learn.microsoft.com/en-us/azure/sentinel/manage-table-tiers-retention)).
-- **ISOC 90-day retention benefit:** Starting 15 November 2026, eligible customers using Integrated Security Operations Center (ISOC) with Microsoft Defender Suite, Microsoft 365 E5 or Microsoft 365 E7 receive up to 90 days of included retention for supported Defender XDR, Azure Activity and Office 365 Activity tables at no additional charge (`AgentsInfo` and `IdentityAccountInfo` remain 30 days) ([manage tables in ISOC](https://learn.microsoft.com/en-us/azure/sentinel/manage-table-tiers-retention-isoc)).
+- **ISOC 90-day retention benefit:** Starting 15 November 2026, eligible customers using Integrated Security Operations Center (ISOC) with Microsoft Defender Suite, Microsoft 365 E5 or Microsoft 365 E7 receive up to 90 days of included retention for supported Microsoft Defender and Microsoft Entra tables (for example `DeviceEvents`, `EmailEvents`, `CloudAppEvents` and `EntraIdSignInEvents`) at no additional charge (`AgentsInfo` and `IdentityAccountInfo` remain 30 days) ([manage tables in ISOC](https://learn.microsoft.com/en-us/azure/sentinel/manage-table-tiers-retention-isoc)).
 - **Unsupported TVM tables:** Defender Vulnerability Management tables (`DeviceTvmSoftwareInventory`, `DeviceTvmSoftwareVulnerabilities`, `DeviceTvmSecureConfigurationAssessment` and related `*KB` tables) are visible in schema autocomplete but are not ingested into Sentinel workspaces. Query them in Defender XDR advanced hunting ([Defender XDR integration](https://learn.microsoft.com/en-us/azure/sentinel/microsoft-365-defender-sentinel-integration)).
 
 ## When to stream raw Defender tables to Sentinel
@@ -81,4 +81,4 @@ Microsoft recommends **custom detection rules** in the Defender portal as the pr
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn.
+26 Nov 2026, against Microsoft Learn.

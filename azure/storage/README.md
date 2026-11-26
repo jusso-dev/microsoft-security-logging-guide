@@ -1,6 +1,6 @@
 # Azure Storage
 
-> Status: verified. Priority: P2. Last verified: 21 Nov 2026.
+> Status: verified. Priority: P2. Last verified: 26 Nov 2026.
 
 ## What it is
 
@@ -41,6 +41,7 @@ Each Azure Storage sub-service writes to its own resource-specific table when di
 | Item | Detail |
 |---|---|
 | Storage diagnostic logs | Supported on Azure Storage v2 (general-purpose v2), BlockBlobStorage, FileStorage and ADLS Gen2 accounts. Classic storage accounts do not support Azure Monitor diagnostic settings ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/storage/blobs/monitor-blob-storage)). |
+| Azure Files diagnostic settings | Configure them on the **file** resource of the storage account. Metrics and logs aren't sent to a Log Analytics workspace by default. This applies to classic SMB and NFS shares (`Microsoft.Storage`) and to shares created with `Microsoft.FileShares`. You can't send logs to the same storage account you're monitoring ([Monitor Azure Files](https://learn.microsoft.com/en-us/azure/storage/files/storage-files-monitoring)). |
 | Sentinel billing | `StorageBlobLogs`, `StorageFileLogs`, `StorageQueueLogs` and `StorageTableLogs` are billable ingestion. Use the data lake tier or a DCR workspace transformation to control cost on read-heavy accounts. |
 | Microsoft Defender for Storage | Paid Defender for Cloud plan billed per storage account per month, with optional add-ons for **On-upload malware scanning** (billed per GB scanned, with monthly caps) and **Sensitive data threat detection** ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/defender-for-cloud/defender-for-storage-introduction)). Generated `SecurityAlert` rows ingest into Sentinel for free. |
 | Resource providers | `Microsoft.Insights` and `Microsoft.Storage` registered on target subscriptions. |
@@ -290,4 +291,4 @@ StorageBlobLogs
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+26 Nov 2026, against Microsoft Learn. Re-verify before relying on table names, navigation or rule names.
