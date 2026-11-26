@@ -326,18 +326,18 @@ jobs:
             exit 1
           fi
 
-  deploy-pages:
-    name: Deploy updated GitHub Pages
+  # Build and deploy are separate jobs, matching pages.yml. Uploading the
+  # github-pages artifact and calling deploy-pages in the same job can race
+  # the artifact list API, so deploy-pages sometimes cannot see the upload
+  # yet and fails with "Fetching artifact metadata failed".
+  build-pages:
+    name: Build updated GitHub Pages
     needs: refresh
     if: ${{ needs.refresh.outputs.pushed == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -355,5 +355,17 @@ jobs:
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: _site
+
+  deploy-pages:
+    name: Deploy updated GitHub Pages
+    needs: build-pages
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
