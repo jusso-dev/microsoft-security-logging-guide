@@ -1,6 +1,6 @@
 # Azure networking (VNet flow logs, Azure Firewall, WAF, DNS and DDoS)
 
-> Status: verified. Priority: P2. Last verified: 25 Nov 2026.
+> Status: verified. Priority: P2. Last verified: 27 Nov 2026.
 
 ## What it is
 
@@ -9,7 +9,7 @@ Azure networking telemetry spans four layers: Virtual Network (VNet) flow logs v
 ## Key recommendations
 
 - **Split Analytics and Data lake tiers deliberately.** Network logs are the classic cost blow-up in Sentinel. Keep high-signal, low-volume alert streams (`AZFWThreatIntel`, `AZFWIdpsSignature`, `DDoSProtectionNotifications`, and tuned `AGWFirewallLogs` / Front Door WAF rule hits) in the **Analytics** tier. Route high-volume flow, firewall rule, HTTP access and raw DNS streams (`NTANetAnalytics`, `AZFWNetworkRule`, `AZFWApplicationRule`, `AZFWNatRule`, `AZFWDnsQuery`, `AZFWFatFlow`, `AGWAccessLogs`, `DNSQueryLogs`, `DDoSMitigationFlowLogs`) to the **Data lake** tier unless specific analytic rules require them in Analytics.
-- **Migrate off NSG flow logs onto VNet flow logs now.** Creation of new NSG flow logs was disabled on **30 June 2025**, and NSG flow logs fully retire on **30 September 2027**, when Azure stops Traffic Analytics for NSG flow logs and deletes NSG flow log resources ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview)). Use **VNet flow logs** with Traffic Analytics writing to `NTANetAnalytics` ([VNet flow logs overview](https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview)).
+- **Migrate off NSG flow logs onto VNet flow logs now.** New NSG flow logs can no longer be created, and NSG flow logs fully retire on **30 September 2027**, when Azure stops Traffic Analytics for NSG flow logs and deletes NSG flow log resources ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview)). Use **VNet flow logs** with Traffic Analytics writing to `NTANetAnalytics` ([VNet flow logs overview](https://learn.microsoft.com/en-us/azure/network-watcher/vnet-flow-logs-overview)).
 - **Use Resource-specific tables for Azure Firewall and Application Gateway WAF.** Never pick legacy `AzureDiagnostics` on new deployments. Resource-specific mode splits firewall logs into typed tables (`AZFWNetworkRule`, `AZFWApplicationRule`, `AZFWThreatIntel`, `AZFWIdpsSignature`, `AZFWNatRule`, `AZFWDnsQuery`, `AZFWFatFlow`) and WAF logs into `AGWFirewallLogs` and `AGWAccessLogs`, avoiding regex parsing and the 500-column `AzureDiagnostics` limit ([Azure Firewall structured logs](https://learn.microsoft.com/en-us/azure/firewall/firewall-structured-logs)).
 - **Update DDoS queries from `DDoSMitigationReports` to `DDoSMitigationFlowLogs`.** `DDoSMitigationReports` retired in mid-August 2026; use `DDoSProtectionNotifications` for attack start/stop alerts and `DDoSMitigationFlowLogs` for mitigation flow telemetry ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/ddos-protection/diagnostic-logging)).
 - **Use Azure DNS resolver policies (DNS security policies)** if you want VNet-wide DNS query logging and Microsoft Threat Intelligence domain blocking without routing every VNet through Azure Firewall DNS proxy. Logs land cleanly in `DNSQueryLogs` ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/dns/dns-security-policy)).
@@ -270,7 +270,7 @@ Keep automated IP blocking behind an approval step or strict allow-list so a spo
 
 ## Gotchas and deprecations
 
-- **NSG flow logs are retiring.** Creating new NSG flow logs was disabled on **30 June 2025**. Full retirement is **30 September 2027**, after which Azure stops Traffic Analytics for NSG flow logs and deletes existing NSG flow log resources (historical files already in Storage remain until their retention expires). Migrate to **VNet flow logs** (`NTANetAnalytics`) well ahead of the deadline ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview)).
+- **NSG flow logs are retiring.** New NSG flow logs can no longer be created. Full retirement is **30 September 2027**, after which Azure stops Traffic Analytics for NSG flow logs and deletes existing NSG flow log resources (historical files already in Storage remain until their retention expires). Migrate to **VNet flow logs** (`NTANetAnalytics`) well ahead of the deadline ([Microsoft Learn](https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview)).
 - **`DDoSMitigationReports` retired in mid-August 2026.** Replace any legacy DDoS queries, alerts or workbooks that read `DDoSMitigationReports` with `DDoSMitigationFlowLogs` ([DDoS diagnostic logging](https://learn.microsoft.com/en-us/azure/ddos-protection/diagnostic-logging)).
 - **Analytics tier cost shock.** Sending `NTANetAnalytics`, `AZFWNetworkRule`, `AZFWApplicationRule`, `AGWAccessLogs` and `DNSQueryLogs` straight to Analytics on busy hubs can generate hundreds of GB per day. Put high-volume flow, rule, access and raw DNS tables in the **Data lake** tier and keep only alert/threat-intel tables in Analytics.
 - **Legacy `AzureDiagnostics` parsing pain.** Selecting `AzureDiagnostics` instead of **Resource specific** on Azure Firewall dumps unparsed text into `msg_s` and misses structured table queries. Always verify `Resource specific` is selected on every Firewall and Application Gateway diagnostic setting.
@@ -308,4 +308,4 @@ Keep automated IP blocking behind an approval step or strict allow-list so a spo
 
 ## Last verified
 
-25 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+27 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.

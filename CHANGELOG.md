@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **27 Nov 2026 nightly refresh.** Five guides flagged by drift detection were re-checked:
+  - [Azure networking](azure/network-nsg-flow-firewall/README.md): the NSG flow log creation date (30 June 2025) is replaced with the wording Microsoft Learn now uses, that new NSG flow logs can no longer be created. The 30 September 2027 retirement date is confirmed against the NSG flow logs overview (updated 26 Nov 2026). The VNet flow logs and Traffic Analytics pages were re-read, and no other changes were needed.
+  - [Exchange Online](email-collab/exchange-online/README.md), [Microsoft Purview unified audit log](email-collab/purview-unified-audit/README.md), [SharePoint Online and OneDrive](email-collab/sharepoint-onedrive/README.md) and [Microsoft Teams](email-collab/teams/README.md): the audit log activities page (updated 24 Nov 2026) was re-read. Its Teams operation names, admin audit log behaviour and SharePoint file throttling notes match the guides. "Last verified" dates are unchanged because the full guide text was not re-checked in this run.
 - **26 Nov 2026 nightly refresh.** Five guides re-checked against upstream Microsoft Learn changes:
   - [Azure App Service and Azure Functions](azure/app-service-functions/README.md): `AppServiceFileAuditLogs` and `AppServiceAntivirusScanAuditLogs` now note the Premium tier requirement, and the Linux and Windows gaps for `AppServiceFileAuditLogs` and `AppServicePlatformLogs` are documented. Disabling FTP or SCM basic auth now needs owner-level access to the app. Gotchas cover SCM basic auth for FTP and the app restart when a diagnostic setting is added.
   - [Azure Storage](azure/storage/README.md): added Azure Files diagnostic setting guidance. Logs are set on the `file` resource, aren't sent to Log Analytics by default, and cover both `Microsoft.Storage` and `Microsoft.FileShares` shares.
