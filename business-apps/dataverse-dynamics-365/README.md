@@ -1,6 +1,6 @@
 # Microsoft Dataverse and Dynamics 365
 
-> Status: verified. Priority: P2. Last verified: 25 Nov 2026.
+> Status: verified. Priority: P2. Last verified: 28 Nov 2026.
 
 ## What it is
 
@@ -170,7 +170,7 @@ From the **Microsoft Business Applications** solution ([Power Platform and D365 
 
 | Rule | Detects | Tables | MITRE | Suggested |
 |---|---|---|---|---|
-| Dataverse - Audit logging disabled | Global or table auditing turned off | `DataverseActivity` | Defense Evasion | Enable day 1 |
+| Dataverse - Audit logging disabled | Global, organisation-level or table auditing turned off. Organisation-level audit-disable events were added in solution 3.2.6 | `DataverseActivity` | Defense Evasion | Enable day 1 |
 | Dataverse - Audit log data deletion | Audit log records deleted | `DataverseActivity` | Defense Evasion | Enable day 1 |
 | Dataverse - Mass export of records to Excel | Export to Excel well above the user's 14-day baseline (or 10,000 rows) | `DataverseActivity` | Exfiltration | Enable day 1 |
 | Dataverse - User bulk retrieval outside normal activity | User retrieves far more records than their 2-week norm | `DataverseActivity` | Exfiltration | Enable (needs Read logs) |
@@ -328,4 +328,4 @@ Microsoft recommends querying watchlists through the bundled parsers (`MSBizApps
 
 ## Last verified
 
-25 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+28 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.

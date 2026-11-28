@@ -1,6 +1,6 @@
 # Active Directory Federation Services (AD FS)
 
-> Status: verified. Priority: P1 (start here). Last verified: 21 Nov 2026.
+> Status: verified. Priority: P1 (start here). Last verified: 28 Nov 2026.
 
 ## What it is
 
@@ -280,4 +280,4 @@ No AD FS-specific Sentinel workbook is documented. The Connect Health portal vie
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, rule names or the solution layout.
+28 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, rule names or the solution layout.

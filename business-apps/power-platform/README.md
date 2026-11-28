@@ -1,6 +1,6 @@
 # Power Platform (Power Apps, Power Automate, Power Platform admin)
 
-> Status: verified. Priority: P2. Last verified: 25 Nov 2026.
+> Status: verified. Priority: P2. Last verified: 28 Nov 2026.
 
 ## What it is
 
@@ -403,4 +403,4 @@ Microsoft recommends querying through the solution parsers (such as `MSBizAppsTe
 
 ## Last verified
 
-25 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+28 Nov 2026, against Microsoft Learn and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.

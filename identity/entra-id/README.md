@@ -1,6 +1,6 @@
 # Microsoft Entra ID (sign-in, audit and Graph activity logs)
 
-> Status: verified. Priority: P1 (start here). Last verified: 21 Nov 2026.
+> Status: verified. Priority: P1 (start here). Last verified: 28 Nov 2026.
 
 ## What it is
 
@@ -357,4 +357,4 @@ AuditLogs
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn, the Defender XDR schema references and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.
+28 Nov 2026, against Microsoft Learn, the Defender XDR schema references and the Azure-Sentinel repo. Re-verify before relying on table names, navigation or rule names.

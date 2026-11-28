@@ -1,6 +1,6 @@
 # Defender best-practice security configurations
 
-> Status: verified. Last verified: 21 Nov 2026.
+> Status: verified. Last verified: 28 Nov 2026.
 
 Logging tells you when something goes wrong; hardening stops the bulk of it before an alert even fires. This handbook pulls together the recommended production security configuration for every Microsoft Defender product, structured as **"I'm trying to harden..."** so you can jump straight to the product you're configuring.
 
@@ -25,7 +25,7 @@ Logging tells you when something goes wrong; hardening stops the bulk of it befo
 | Setting | Recommended configuration | Why it matters |
 |---|---|---|
 | **Automatic attack disruption** | Keep **enabled** across Endpoint, Identity, Cloud Apps and Office 365, and configure exclusions only for break-glass or critical service accounts ([Microsoft Learn](https://learn.microsoft.com/en-us/defender-xdr/automatic-attack-disruption)). | Automatically contains hands-on-keyboard ransomware, BEC and adversary-in-the-middle attacks at machine speed (isolates devices, disables compromised AD/Entra accounts, suspends OAuth apps). |
-| **Unified RBAC** | Migrate workload-specific roles into Defender XDR Unified RBAC with least privilege and scoped device/asset groups ([Microsoft Learn](https://learn.microsoft.com/en-us/defender-xdr/manage-rbac)). | One permission model across Defender XDR and Sentinel in the Defender portal without granting broad Entra Global Admin or Security Admin roles. |
+| **Unified RBAC** | Migrate workload-specific roles into Defender XDR Unified RBAC with least privilege and scoped device/asset groups ([Microsoft Learn](https://learn.microsoft.com/en-us/defender-xdr/manage-rbac)). Sentinel workspaces onboarded to the Defender portal can be managed here too, but role assignments to service principals aren't supported. | One permission model across Defender XDR and Sentinel in the Defender portal without granting broad Entra Global Admin or Security Admin roles. |
 | **Alert tuning & incident deduplication** | Onboard Sentinel to the Defender portal, turn off legacy standalone alert connectors and Microsoft incident creation rules, and use Defender portal **Alert tuning** rather than suppressing whole connectors. | Prevents duplicate incidents while keeping attack-story correlation intact. See [Defender XDR vs Sentinel](defender-xdr-vs-sentinel.md). |
 
 ## Microsoft Defender for Endpoint
@@ -157,4 +157,4 @@ Covers both **Azure SQL Database / Managed Instance / Synapse** and **SQL Server
 
 ## Last verified
 
-21 Nov 2026, against Microsoft Learn.
+28 Nov 2026, against Microsoft Learn.
